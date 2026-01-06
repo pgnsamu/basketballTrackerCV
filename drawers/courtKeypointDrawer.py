@@ -1,4 +1,6 @@
 import supervision as sv
+import numpy as np
+import cv2
 
 class CourtKeypointDrawer:
     """
@@ -50,5 +52,65 @@ class CourtKeypointDrawer:
                 key_points=keypoints_numpy)
 
             output_frames.append(annotated_frame)
+
+        return output_frames
+    
+    def draw(self, frames: list[np.ndarray], court_keypoints: list[np.ndarray], cv) -> list[np.ndarray]:
+        """
+        Draw court keypoints on frames using OpenCV.
+
+        Args:
+            frames: list of BGR images (np.ndarray)
+            court_keypoints: list of np.ndarray, each shape (18,2), float32
+                            (0,0) means not detected
+
+        Returns:
+            list of annotated frames
+        """
+
+        output_frames = []
+
+        # colore in BGR
+        color = tuple(int(self.keypoint_color[i:i+2], 16) for i in (1, 3, 5))
+        color = color[::-1]  # RGB -> BGR
+
+        for idx, frame in enumerate(frames):
+            annotated = frame.copy()
+            kps = court_keypoints[idx]
+
+            if kps is None:
+                output_frames.append(annotated)
+                continue
+
+            kps = np.asarray(kps, dtype=np.float32)
+
+            for kp_idx, (x, y) in enumerate(kps):
+                if x <= 0 or y <= 0:
+                    continue
+
+                x_i, y_i = int(round(x)), int(round(y))
+
+                # disegna punto
+                cv2.circle(
+                    annotated,
+                    center=(x_i, y_i),
+                    radius=6,
+                    color=color,
+                    thickness=-1
+                )
+
+                # disegna label
+                cv2.putText(
+                    annotated,
+                    text=str(kp_idx),
+                    org=(x_i + 5, y_i - 5),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.4,
+                    color=(255, 255, 255),
+                    thickness=1,
+                    lineType=cv2.LINE_AA
+                )
+
+            output_frames.append(annotated)
 
         return output_frames

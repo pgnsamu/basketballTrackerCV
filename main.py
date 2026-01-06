@@ -1,9 +1,12 @@
 import os
+import cv2
+import numpy as np
 from utils import read_video, save_video
 from detectors.keypoint_detector import CourtKeypointDetector
 from drawers.courtKeypointDrawer import CourtKeypointDrawer
 from tactical_view_converter.tactical_view_converter import TacticalViewConverter
 from homography.homography import Homography
+from drawers.drawWindow import DrawWindow
 
 
 def main():
@@ -34,9 +37,6 @@ def main():
                                                                     read_from_stub=True,
                                                                     stub_path='stubs/court_key_points_stub.pkl'
                                                                     )
-    
-    court_k = []
-    count = 0
     # [1, 18, 2]
     '''
     [ # 1
@@ -46,14 +46,6 @@ def main():
         ]
     ]
     '''
-    # 18 punti per frame 
-    for point in court_keypoints_per_frame:
-        if(count==0):
-            print(point.shape)
-        coords = point.xy[0].cpu().numpy().astype(float)
-        
-        count += 1
-        
     
     
     '''
@@ -87,14 +79,26 @@ def main():
 
     court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
     
+   
     
-    for frame in video_frames:
+    for frame_idx, frame in enumerate(video_frames):
         homography = Homography(
             source_points=tactical_view_converter.getKeypointsForOpencv(),
-            destination_points=court_keypoints_per_frame
+            destination_points=court_keypoints_per_frame[frame_idx]
         )
-        
-    
+        if frame_idx % 10 == 0:
+            print(f"Calculated homography for frame {frame_idx}")
+            drawWindow = DrawWindow("Frame", homography)
+            frameSpec = video_frames[frame_idx].copy()
+            frameSpec = drawWindow.drawOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
+            
+            #drawWindow.realtimeDisplaying(frameSpec, court_keypoints_per_frame[frame_idx])
+            frameImg = cv2.imread("images/basketball_court.png")
+            frameImg = drawWindow.drawOnFrame(frameImg, tactical_view_converter.getKeypointsForOpencv())
+            #drawWindow.realtimeDisplaying(frameImg, tactical_view_converter.getKeypointsForOpencv())
+            frame = drawWindow.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
+            drawWindow.realtimeDisplaying(frame)
+
     
     '''
     tactical_player_positions = tactical_view_converter.transform_players_to_tactical_view(court_keypoints_per_frame,player_tracks)
@@ -123,7 +127,7 @@ def main():
     output_video_frames = ball_tracks_drawer.draw(output_video_frames, ball_tracks)
     '''
     ## Draw KeyPoints
-    output_video_frames = court_keypoint_drawer.draw(video_frames, court_keypoints_per_frame)
+    output_video_frames = court_keypoint_drawer.draw(video_frames, court_keypoints_per_frame, cv=True)
     '''
     ## Draw Frame Number
     output_video_frames = frame_number_drawer.draw(output_video_frames)

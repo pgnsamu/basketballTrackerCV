@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 import cv2
 from copy import deepcopy
+from .homography import Homography
 
 folder_path = pathlib.Path(__file__).parent.resolve()
 sys.path.append(os.path.join(folder_path,"../"))
@@ -12,8 +13,8 @@ from utils import get_foot_position,measure_distance
 class TacticalViewConverter:
     def __init__(self, court_image_path):
         self.court_image_path = court_image_path
-        self.width = 300
-        self.height= 161
+        self.width = 598
+        self.height= 321
 
         self.actual_width_in_meters=28
         self.actual_height_in_meters=15 
@@ -59,73 +60,79 @@ class TacticalViewConverter:
     def validate_keypoints(self, keypoints_list: list[np.ndarray]) -> list[np.ndarray]:
         """
         Args:
-            keypoints_list: List[np.ndarray] of shape (18,2), dtype float32
+            keypoints_list: list of np.ndarray, each of shape (18,2), dtype float32
                             (0,0) means not detected
         Returns:
-            List[np.ndarray]: validated keypoints, same shape
+            list[np.ndarray]: validated keypoints, same structure
         """
 
         keypoints_list = deepcopy(keypoints_list)
-        tactical_pts = self.getKeypointsForOpencv()
+        tactical_pts = np.array(self.key_points, dtype=np.float32)  # (18,2)
 
         for frame_idx, frame_kps in enumerate(keypoints_list):
 
             if frame_kps is None:
                 continue
-            
-            # frame_kps: (18,2)
-            frame_kps = frame_kps[0].astype(np.float32)
 
-            # keypoints validi (non 0,0)
-            detected_indices = np.where(
-                ~((frame_kps[:, 0] == 0) & (frame_kps[:, 1] == 0))
-            )[0]
+            # sicurezza
+            frame_kps = np.asarray(frame_kps, dtype=np.float32)
+
+            # indici dei keypoint rilevati
+            detected_points = [
+                point for point, keypoint_coordinates in enumerate(frame_kps)
+                if keypoint_coordinates[0] > 0 and keypoint_coordinates[1] > 0
+            ]
 
             # servono almeno 3 punti
-            if len(detected_indices) < 3:
+            if len(detected_points) < 3:
                 continue
 
             invalid_keypoints = []
 
-            for i in detected_indices:
-                if i in invalid_keypoints:
+            for p0 in detected_points:
+
+                if p0 in invalid_keypoints:
                     continue
 
-                # altri due punti validi
+                if frame_kps[p0][0] == 0 and frame_kps[p0][1] == 0:
+                    continue
+
                 other_indices = [
-                    idx for idx in detected_indices
-                    if idx != i and idx not in invalid_keypoints
+                    idx for idx in detected_points
+                    if idx != p0 and idx not in invalid_keypoints
                 ]
 
                 if len(other_indices) < 2:
                     continue
 
-                j, k = other_indices[0], other_indices[1]
+                p1, p2 = other_indices[0], other_indices[1]
 
                 # distanze nel frame
-                d_ij = measure_distance(frame_kps[i], frame_kps[j])
-                d_ik = measure_distance(frame_kps[i], frame_kps[k])
-
-                # distanze nella vista tattica
-                t_ij = measure_distance(tactical_pts[i], tactical_pts[j])
-                t_ik = measure_distance(tactical_pts[i], tactical_pts[k])
-
-                if d_ik == 0 or t_ik == 0:
+                distance_p0_p1 = measure_distance(frame_kps[p0], frame_kps[p1])
+                distance_p0_p2 = measure_distance(frame_kps[p0], frame_kps[p2])
+                if distance_p0_p2 == 0:
                     continue
 
-                prop_detected = d_ij / d_ik
-                prop_tactical = t_ij / t_ik
+                # distanze nella vista tattica
+                distance_p0_p1_tactic = measure_distance(tactical_pts[p0], tactical_pts[p1])
+                distance_p0_p2_tactic = measure_distance(tactical_pts[p0], tactical_pts[p2])
 
-                error = abs(prop_detected - prop_tactical) / prop_tactical
+                if distance_p0_p2_tactic == 0:
+                    continue
+
+                prop_detected = distance_p0_p1 / distance_p0_p2
+                prop_tactical = distance_p0_p1_tactic / distance_p0_p2_tactic
+                
+                error = abs(prop_detected - prop_tactical) / abs(prop_tactical)
 
                 if error > 0.8:  # 80% di errore
-                    frame_kps[i] = (0.0, 0.0)
-                    invalid_keypoints.append(i)
+                    frame_kps[p0] = (0.0, 0.0)
+                    invalid_keypoints.append(p0)
 
             keypoints_list[frame_idx] = frame_kps
 
         return keypoints_list
-'''
+
     def transform_players_to_tactical_view(self, keypoints_list, player_tracks):
         """
         Transform player positions from video frame coordinates to tactical view coordinates.
@@ -192,4 +199,4 @@ class TacticalViewConverter:
             tactical_player_positions.append(tactical_positions)
         
         return tactical_player_positions
-'''
+
