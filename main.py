@@ -61,7 +61,7 @@ def main():
         court_image_path="./images/basketball_court.png"
     )
 
-    #court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
+    court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
     '''
     tactical_player_positions = tactical_view_converter.transform_players_to_tactical_view(court_keypoints_per_frame,player_tracks)
 
@@ -77,14 +77,8 @@ def main():
     '''
     # Draw output   
     # Initialize Drawers
-    #player_tracks_drawer = PlayerTracksDrawer()
-    #ball_tracks_drawer = BallTracksDrawer()
     court_keypoint_drawer = CourtKeypointDrawer()
-    #team_ball_control_drawer = TeamBallControlDrawer()
-    #frame_number_drawer = FrameNumberDrawer()
-    #pass_and_interceptions_drawer = PassInterceptionDrawer()
     #tactical_view_drawer = TacticalViewDrawer()
-    #speed_and_distance_drawer = SpeedAndDistanceDrawer()
 
     ## Draw object Tracks
     '''
@@ -100,23 +94,6 @@ def main():
     ## Draw Frame Number
     output_video_frames = frame_number_drawer.draw(output_video_frames)
 
-    # Draw Team Ball Control
-    output_video_frames = team_ball_control_drawer.draw(output_video_frames,
-                                                        player_assignment,
-                                                        ball_aquisition)
-
-    # Draw Passes and Interceptions
-    output_video_frames = pass_and_interceptions_drawer.draw(output_video_frames,
-                                                             passes,
-                                                             interceptions)
-    
-    # Speed and Distance Drawer
-    output_video_frames = speed_and_distance_drawer.draw(output_video_frames,
-                                                         player_tracks,
-                                                         player_distances_per_frame,
-                                                         player_speed_per_frame
-                                                         )
-    
     ## Draw Tactical View
     output_video_frames = tactical_view_drawer.draw(output_video_frames,
                                                     tactical_view_converter.court_image_path,
@@ -129,7 +106,7 @@ def main():
                                                     )
     '''
     # Save video
-    save_video(output_video_frames, 'outputVideo/output_video5.mp4')
+    save_video(output_video_frames, 'outputVideo/output_video5validated.mp4')
 
 if __name__ == '__main__':
     main()
