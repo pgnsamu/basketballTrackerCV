@@ -3,6 +3,8 @@ from utils import read_video, save_video
 from detectors.keypoint_detector import CourtKeypointDetector
 from drawers.courtKeypointDrawer import CourtKeypointDrawer
 from tactical_view_converter.tactical_view_converter import TacticalViewConverter
+from homography.homography import Homography
+
 
 def main():
     
@@ -29,11 +31,29 @@ def main():
     '''
     ## Run KeyPoint Extractor
     court_keypoints_per_frame = court_keypoint_detector.get_court_keypoints(video_frames,
-                                                                    read_from_stub=False,
+                                                                    read_from_stub=True,
                                                                     stub_path='stubs/court_key_points_stub.pkl'
                                                                     )
     
-    print(court_keypoints_per_frame, type(court_keypoints_per_frame))
+    court_k = []
+    count = 0
+    # [1, 18, 2]
+    '''
+    [ # 1
+        [ #18
+            [x,y], #2
+            ...
+        ]
+    ]
+    '''
+    # 18 punti per frame 
+    for point in court_keypoints_per_frame:
+        if(count==0):
+            print(point.shape)
+        coords = point.xy[0].cpu().numpy().astype(float)
+        
+        count += 1
+        
     
     
     '''
@@ -66,6 +86,16 @@ def main():
     )
 
     court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
+    
+    
+    for frame in video_frames:
+        homography = Homography(
+            source_points=tactical_view_converter.getKeypointsForOpencv(),
+            destination_points=court_keypoints_per_frame
+        )
+        
+    
+    
     '''
     tactical_player_positions = tactical_view_converter.transform_players_to_tactical_view(court_keypoints_per_frame,player_tracks)
 

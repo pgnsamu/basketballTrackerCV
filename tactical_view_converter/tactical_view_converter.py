@@ -4,7 +4,6 @@ import pathlib
 import numpy as np
 import cv2
 from copy import deepcopy
-from .homography import Homography
 
 folder_path = pathlib.Path(__file__).parent.resolve()
 sys.path.append(os.path.join(folder_path,"../"))
@@ -48,72 +47,85 @@ class TacticalViewConverter:
             (int(((self.actual_width_in_meters-5.79)/self.actual_width_in_meters)*self.width),int((5.18/self.actual_height_in_meters)*self.height)),
             (int(((self.actual_width_in_meters-5.79)/self.actual_width_in_meters)*self.width),int((10/self.actual_height_in_meters)*self.height)),
         ]
-
-    def validate_keypoints(self, keypoints_list):
+    def getKeypointsForOpencv(self) -> np.ndarray:
         """
-        Validates detected keypoints by comparing their proportional distances
-        to the tactical view keypoints.
-        
-        Args:
-            keypoints_list (List[List[Tuple[float, float]]]): A list containing keypoints for each frame.
-                Each outer list represents a frame.
-                Each inner list contains keypoints as (x, y) tuples.
-                A keypoint of (0, 0) indicates that the keypoint is not detected for that frame.
+        Returns the tactical view keypoints as a numpy array suitable for OpenCV functions.
         
         Returns:
-            List[bool]: A list indicating whether each frame's keypoints are valid.
+            np.ndarray: An array of shape (18, 2) containing the tactical view keypoints.
+        """
+        return np.array(self.key_points, dtype=np.float32)  # (18,2)
+
+    def validate_keypoints(self, keypoints_list: list[np.ndarray]) -> list[np.ndarray]:
+        """
+        Args:
+            keypoints_list: List[np.ndarray] of shape (18,2), dtype float32
+                            (0,0) means not detected
+        Returns:
+            List[np.ndarray]: validated keypoints, same shape
         """
 
         keypoints_list = deepcopy(keypoints_list)
+        tactical_pts = self.getKeypointsForOpencv()
 
-        for frame_idx, frame_keypoints in enumerate(keypoints_list):
-            frame_keypoints = frame_keypoints.xy.tolist()[0]
-            
-            # Get indices of detected keypoints (not (0, 0))
-            detected_indices = [i for i, kp in enumerate(frame_keypoints) if kp[0] >0 and kp[1]>0]
-            
-            # Need at least 3 detected keypoints to validate proportions
-            if len(detected_indices) < 3:
+        for frame_idx, frame_kps in enumerate(keypoints_list):
+
+            if frame_kps is None:
                 continue
             
+            # frame_kps: (18,2)
+            frame_kps = frame_kps[0].astype(np.float32)
+
+            # keypoints validi (non 0,0)
+            detected_indices = np.where(
+                ~((frame_kps[:, 0] == 0) & (frame_kps[:, 1] == 0))
+            )[0]
+
+            # servono almeno 3 punti
+            if len(detected_indices) < 3:
+                continue
+
             invalid_keypoints = []
-            # Validate each detected keypoint
+
             for i in detected_indices:
-                # Skip if this is (0, 0)
-                if frame_keypoints[i][0] == 0 and frame_keypoints[i][1] == 0:
+                if i in invalid_keypoints:
                     continue
 
-                # Choose two other random detected keypoints
-                other_indices = [idx for idx in detected_indices if idx != i and idx not in invalid_keypoints]
+                # altri due punti validi
+                other_indices = [
+                    idx for idx in detected_indices
+                    if idx != i and idx not in invalid_keypoints
+                ]
+
                 if len(other_indices) < 2:
                     continue
 
-                # Take first two other indices for simplicity
                 j, k = other_indices[0], other_indices[1]
 
-                # Calculate distances between detected keypoints
-                d_ij = measure_distance(frame_keypoints[i], frame_keypoints[j])
-                d_ik = measure_distance(frame_keypoints[i], frame_keypoints[k])
-                
-                # Calculate distances between corresponding tactical keypoints
-                t_ij = measure_distance(self.key_points[i], self.key_points[j])
-                t_ik = measure_distance(self.key_points[i], self.key_points[k])
+                # distanze nel frame
+                d_ij = measure_distance(frame_kps[i], frame_kps[j])
+                d_ik = measure_distance(frame_kps[i], frame_kps[k])
 
-                # Calculate and compare proportions with 50% error margin
-                if t_ij > 0 and t_ik > 0:
-                    prop_detected = d_ij / d_ik if d_ik > 0 else float('inf')
-                    prop_tactical = t_ij / t_ik if t_ik > 0 else float('inf')
+                # distanze nella vista tattica
+                t_ij = measure_distance(tactical_pts[i], tactical_pts[j])
+                t_ik = measure_distance(tactical_pts[i], tactical_pts[k])
 
-                    error = (prop_detected - prop_tactical) / prop_tactical
-                    error = abs(error)
+                if d_ik == 0 or t_ik == 0:
+                    continue
 
-                    if error >0.8:  # 80% error margin                        
-                        keypoints_list[frame_idx].xy[0][i] *= 0
-                        keypoints_list[frame_idx].xyn[0][i] *= 0
-                        invalid_keypoints.append(i)
-            
+                prop_detected = d_ij / d_ik
+                prop_tactical = t_ij / t_ik
+
+                error = abs(prop_detected - prop_tactical) / prop_tactical
+
+                if error > 0.8:  # 80% di errore
+                    frame_kps[i] = (0.0, 0.0)
+                    invalid_keypoints.append(i)
+
+            keypoints_list[frame_idx] = frame_kps
+
         return keypoints_list
-
+'''
     def transform_players_to_tactical_view(self, keypoints_list, player_tracks):
         """
         Transform player positions from video frame coordinates to tactical view coordinates.
@@ -180,4 +192,4 @@ class TacticalViewConverter:
             tactical_player_positions.append(tactical_positions)
         
         return tactical_player_positions
-
+'''

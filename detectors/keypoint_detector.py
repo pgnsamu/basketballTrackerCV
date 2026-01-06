@@ -1,6 +1,7 @@
 from ultralytics import YOLO
 import sys 
 sys.path.append('../')
+import numpy as np
 from utils import read_stub, save_stub
 
 
@@ -13,7 +14,7 @@ class CourtKeypointDetector:
         self.model = YOLO(model_path)
         self.conf_threshold = conf_threshold
     
-    def get_court_keypoints(self, frames,read_from_stub=False, stub_path=None):
+    def get_court_keypoints(self, frames,read_from_stub=False, stub_path=None) -> list[np.ndarray]:
         """
         Detect court keypoints for a batch of frames using the YOLO model. If requested, 
         attempts to read previously detected keypoints from a stub file before running the model.
@@ -31,14 +32,29 @@ class CourtKeypointDetector:
         court_keypoints = read_stub(read_from_stub,stub_path)
         if court_keypoints is not None:
             if len(court_keypoints) == len(frames):
+                print("-------------------------------------")
                 return court_keypoints
         
         batch_size=20
         court_keypoints = []
         for i in range(0,len(frames),batch_size):
             detections_batch = self.model.predict(frames[i:i+batch_size],conf=self.conf_threshold)
+            
             for detection in detections_batch:
-                court_keypoints.append(detection.keypoints)
+                if detection.keypoints is None:
+                    court_keypoints.append(None)
+                    continue
+
+                # tensor: (n_instances, 18, 2)
+                xy = detection.keypoints.xy
+
+                if xy is None or xy.shape[0] == 0:
+                    court_keypoints.append(None)
+                    continue
+
+                # prendi la prima detection (assumendo 1 campo)
+                pts = xy[0].cpu().numpy().astype(np.float32)   # (18,2)
+                court_keypoints.append(pts)
 
         save_stub(stub_path,court_keypoints)
         
