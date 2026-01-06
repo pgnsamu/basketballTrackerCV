@@ -21,9 +21,9 @@ class DrawWindow:
             self.clicked_point = (x, y)
             if self.picture_in_picture_section is not None and self.homography is not None:
                 y1, y2, x1, x2 = self.picture_in_picture_section
-                width = (x2 - x1)/self.scale
+                width = (x2 - x1)/self.scaleSmall
                 print("width PIP:", width)
-                height = (y2 - y1)/self.scale
+                height = (y2 - y1)/self.scaleSmall
                 print("height PIP:", height)
                 if x1 <= x <= x2 and y1 <= y <= y2:
                     
@@ -34,12 +34,16 @@ class DrawWindow:
                     print("Clicked inside PIP at:", (xFinal, yFinal))
                     self.other_point = self.homography.transform_points(point, inverse=False)[0]
                 else:
-                    point = np.array([[x, y]], dtype='float32')
-                    
-                    print("Clicked outside PIP at:", (x, y))
-                    self.other_point = self.homography.transform_points(point, inverse=True)[0]
-                    self.other_point = (float(self.other_point[0]/self.scale), float(self.other_point[1]/self.scale))
-                    
+                    point = np.array([[[x, y]]], dtype=np.float32)
+                    tactical_pt = self.homography.transform_points(point.reshape(1, 2), inverse=True)[0]  # (tx,ty)
+
+                    tx, ty = float(tactical_pt[0]), float(tactical_pt[1])
+
+                    # TACTICAL original -> coordinate DENTRO PiP (quindi sul big frame)
+                    pip_x = x1 + tx * (width*self.scaleSmall / width)
+                    pip_y = y1 + ty * (height*self.scaleSmall / height)
+
+                    self.other_point = (pip_x, pip_y)
                       
             
     def composeFrame(self, big, small, pos=(0,0), scale=0.25):
