@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 from utils import read_video, save_video
 from detectors.keypoint_detector import CourtKeypointDetector
-from drawers.courtKeypointDrawer import CourtKeypointDrawer
 from tactical_view_converter.tactical_view_converter import TacticalViewConverter
 from homography.homography import Homography
 from drawers.drawWindow import DrawWindow
