@@ -1,7 +1,8 @@
 import os
 from utils import read_video, save_video
-from keypoint_detector import CourtKeypointDetector
-from courtKeypointDrawer import CourtKeypointDrawer
+from detectors.keypoint_detector import CourtKeypointDetector
+from drawers.courtKeypointDrawer import CourtKeypointDrawer
+from tactical_view.tactical_view import TacticalViewConverter
 
 def main():
     
@@ -56,9 +57,9 @@ def main():
     interceptions = pass_and_interception_detector.detect_interceptions(ball_aquisition,player_assignment)
     '''
     # Tactical View
-    #tactical_view_converter = TacticalViewConverter(
-    #    court_image_path="./images/basketball_court.png"
-    #)
+    tactical_view_converter = TacticalViewConverter(
+        court_image_path="./images/basketball_court.png"
+    )
 
     #court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
     '''
@@ -128,7 +129,7 @@ def main():
                                                     )
     '''
     # Save video
-    save_video(output_video_frames, 'outputVideo/output_video4.mp4')
+    save_video(output_video_frames, 'outputVideo/output_video5.mp4')
 
 if __name__ == '__main__':
     main()

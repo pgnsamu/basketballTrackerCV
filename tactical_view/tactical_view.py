@@ -73,6 +73,11 @@ class TacticalViewConverter:
                 continue
             
             invalid_keypoints = []
+            '''
+            prendo un keypoint alla volta e confronto le distanze con due altri keypoint validi
+            se la proporzione tra le distanze misurate e quelle attese supera una certa soglia di errore
+            allora invalido quel keypoint
+            '''
             for i in detected_indices:
                 # Skip if current keypoint is zeroed (already invalidated)
                 if frame_keypoints[i][0] == 0 and frame_keypoints[i][1] == 0:
@@ -80,6 +85,7 @@ class TacticalViewConverter:
 
                 # Select two other valid keypoints for ratio comparison
                 other_indices = [idx for idx in detected_indices if idx != i and idx not in invalid_keypoints]
+                # skip if less than two other keypoints are available
                 if len(other_indices) < 2:
                     continue
 
