@@ -9,54 +9,55 @@ class DrawWindow:
         cv2.namedWindow(self.window_name)
         cv2.setMouseCallback(self.window_name, self.mouse_callback)
         self.clicked_point = (0, 0)
-        self.other_point = None
         self.point_drawer = PointDrawer(point_color="#FF0000", point_radius=7)
-        self.picture_in_picture_section = None
-        self.clicked_inside_pip = False
         self.homography = homography
-        self.offset = (10, 10)
+        self.picture_in_picture_section = None
+        self.other_point = None
+        self.scaleBig = 0.25
+        self.scaleSmall = 1.0
 
     def mouse_callback(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             self.clicked_point = (x, y)
             if self.picture_in_picture_section is not None and self.homography is not None:
                 y1, y2, x1, x2 = self.picture_in_picture_section
-                width = x2 - x1
-                height = y2 - y1
+                width = (x2 - x1)/self.scale
+                print("width PIP:", width)
+                height = (y2 - y1)/self.scale
+                print("height PIP:", height)
                 if x1 <= x <= x2 and y1 <= y <= y2:
                     
-                    xFinal, yFinal = 598 * (x - x1) / width, 321 * (y - y1) / height
+                    xFinal, yFinal = width * (x - x1) / (x2-x1), height * (y - y1) / (y2-y1)
                     point = np.array([[xFinal, yFinal]], dtype='float32')
-                    self.other_point = point
                     
                     print("Clicked inside PIP at:", (x, y))
                     print("Clicked inside PIP at:", (xFinal, yFinal))
                     self.other_point = self.homography.transform_points(point, inverse=False)[0]
                 else:
-                    xFinal, yFinal = width * x / 598, height * y / 321
                     point = np.array([[x, y]], dtype='float32')
-                    self.other_point = point
                     
                     print("Clicked outside PIP at:", (x, y))
                     self.other_point = self.homography.transform_points(point, inverse=True)[0]
+                    self.other_point = (float(self.other_point[0]/self.scale), float(self.other_point[1]/self.scale))
                     
-                    
-                    
-                    
-        
-        
+                      
             
     def composeFrame(self, big, small, pos=(0,0), scale=0.25):
         """
         picture-in-picture composition of two frames
         """
+        # self.scale = scale
+        
         # getting dimension of big frame
         h, w = big.shape[:2]
+        hsmall, wsmall = small.shape[:2]
+        self.scaleBig = scale
         
         # resizing small frame
         #sh, sw = int(h*scale), int(w*scale)
         sh, sw = 161, 300
         small = cv2.resize(small, (sw, sh))
+        self.scaleSmall = sw / wsmall
         
         # setting position
         x, y = pos
