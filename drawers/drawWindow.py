@@ -4,6 +4,9 @@ from .drawPoint import PointDrawer
 from homography.homography import Homography
 
 class DrawWindow:
+    
+    homography: Homography = None
+    
     def __init__(self, window_name: str, homography: Homography = None):
         self.window_name = window_name
         cv2.namedWindow(self.window_name)
@@ -15,6 +18,9 @@ class DrawWindow:
         self.other_point = None
         self.scaleBig = 0.25
         self.scaleSmall = 1.0
+        
+    def setHomography(self, homography: Homography):
+        self.homography = homography
 
     def mouse_callback(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -116,4 +122,34 @@ class DrawWindow:
                 break
 
         cv2.destroyWindow(self.window_name)
+        
+    def drawAllFrames(self, frames: list[np.ndarray], small, point_per_small: list[np.ndarray], points_per_frame: list[np.ndarray], homography: Homography = None ) -> list[np.ndarray]:
+        """
+        Draw all frames with points transformed by the homography.
+
+        Args:
+            frames: list of BGR images (np.ndarray)
+            small: BGR image (np.ndarray) for picture-in-picture
+            point_per_small: np.ndarray, shape (N,2), float32
+            points_per_frame: list of np.ndarray, each of shape (N,2), float32
+            homography: Homography object (optional)
+        """
+        frames_out = []
+        
+        frameImg = cv2.imread("images/basketball_court.png")
+        frameImg = self.drawOnFrame(frameImg, point_per_small)
+        for frame_idx, frame in enumerate(frames):
+            homography = Homography(
+                source_points=point_per_small,
+                destination_points=points_per_frame[frame_idx]
+            )
+            self.setHomography(homography)
+            frameSpec = frame.copy()
+            frameSpec = self.drawOnFrame(frameSpec, points_per_frame[frame_idx])
+            
+            frame = self.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
+            
+            frames_out.append(frame)
+        return frames_out
+        
         

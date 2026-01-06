@@ -8,30 +8,17 @@ from tactical_view_converter.tactical_view_converter import TacticalViewConverte
 from homography.homography import Homography
 from drawers.drawWindow import DrawWindow
 
+DEBUG = False
+
 
 def main():
     
     # Read Video
     video_frames = read_video('input_video/video_1.mp4')
-    '''
-    ## Initialize Tracker
-    player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
-    ball_tracker = BallTracker(BALL_DETECTOR_PATH)
-    '''
+
     ## Initialize Keypoint Detector
     court_keypoint_detector = CourtKeypointDetector('models/BEST2.pt')
-    '''
-    # Run Detectors
-    player_tracks = player_tracker.get_object_tracks(video_frames,
-                                       read_from_stub=True,
-                                       stub_path=os.path.join(args.stub_path, 'player_track_stubs.pkl')
-                                      )
     
-    ball_tracks = ball_tracker.get_object_tracks(video_frames,
-                                                 read_from_stub=True,
-                                                 stub_path=os.path.join(args.stub_path, 'ball_track_stubs.pkl')
-                                                )
-    '''
     ## Run KeyPoint Extractor
     court_keypoints_per_frame = court_keypoint_detector.get_court_keypoints(video_frames,
                                                                     read_from_stub=True,
@@ -47,31 +34,6 @@ def main():
     ]
     '''
     
-    
-    '''
-    # Remove Wrong Ball Detections
-    ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
-    # Interpolate Ball Tracks
-    ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
-   
-
-    # Assign Player Teams
-    team_assigner = TeamAssigner()
-    player_assignment = team_assigner.get_player_teams_across_frames(video_frames,
-                                                                    player_tracks,
-                                                                    read_from_stub=True,
-                                                                    stub_path=os.path.join(args.stub_path, 'player_assignment_stub.pkl')
-                                                                    )
-
-    # Ball Acquisition
-    ball_aquisition_detector = BallAquisitionDetector()
-    ball_aquisition = ball_aquisition_detector.detect_ball_possession(player_tracks,ball_tracks)
-
-    # Detect Passes
-    pass_and_interception_detector = PassAndInterceptionDetector()
-    passes = pass_and_interception_detector.detect_passes(ball_aquisition,player_assignment)
-    interceptions = pass_and_interception_detector.detect_interceptions(ball_aquisition,player_assignment)
-    '''
     # Tactical View
     tactical_view_converter = TacticalViewConverter(
         court_image_path="./images/basketball_court.png"
@@ -79,69 +41,40 @@ def main():
 
     court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
     
-   
-    
-    for frame_idx, frame in enumerate(video_frames):
-        homography = Homography(
-            source_points=tactical_view_converter.getKeypointsForOpencv(),
-            destination_points=court_keypoints_per_frame[frame_idx]
-        )
-        if frame_idx % 10 == 0:
-            print(f"Calculated homography for frame {frame_idx}")
-            drawWindow = DrawWindow("Frame", homography)
-            frameSpec = video_frames[frame_idx].copy()
-            frameSpec = drawWindow.drawOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
-            
-            #drawWindow.realtimeDisplaying(frameSpec, court_keypoints_per_frame[frame_idx])
-            frameImg = cv2.imread("images/basketball_court.png")
-            frameImg = drawWindow.drawOnFrame(frameImg, tactical_view_converter.getKeypointsForOpencv())
-            #drawWindow.realtimeDisplaying(frameImg, tactical_view_converter.getKeypointsForOpencv())
-            frame = drawWindow.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
-            drawWindow.realtimeDisplaying(frame)
-
-    
-    '''
-    tactical_player_positions = tactical_view_converter.transform_players_to_tactical_view(court_keypoints_per_frame,player_tracks)
-
-    # Speed and Distance Calculator
-    speed_and_distance_calculator = SpeedAndDistanceCalculator(
-        tactical_view_converter.width,
-        tactical_view_converter.height,
-        tactical_view_converter.actual_width_in_meters,
-        tactical_view_converter.actual_height_in_meters
+    if DEBUG:
+        for frame_idx, frame in enumerate(video_frames):
+            homography = Homography(
+                source_points=tactical_view_converter.getKeypointsForOpencv(),
+                destination_points=court_keypoints_per_frame[frame_idx]
+            )
+            # DEBUG display every 10 frames
+            if frame_idx % 10 == 0:
+                print(f"Calculated homography for frame {frame_idx}")
+                drawWindow = DrawWindow("Frame", homography)
+                frameSpec = video_frames[frame_idx].copy()
+                frameSpec = drawWindow.drawOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
+                
+                #drawWindow.realtimeDisplaying(frameSpec, court_keypoints_per_frame[frame_idx])
+                frameImg = cv2.imread("images/basketball_court.png")
+                frameImg = drawWindow.drawOnFrame(frameImg, tactical_view_converter.getKeypointsForOpencv())
+                #drawWindow.realtimeDisplaying(frameImg, tactical_view_converter.getKeypointsForOpencv())
+                frame = drawWindow.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
+                drawWindow.realtimeDisplaying(frame)
+        
+    drawWindow = DrawWindow("Output Video")
+    tactical_court = cv2.imread("images/basketball_court.png")
+    output_video_frames = drawWindow.drawAllFrames(
+        frames=video_frames,
+        small=tactical_court,
+        point_per_small=tactical_view_converter.getKeypointsForOpencv(),
+        points_per_frame=court_keypoints_per_frame
     )
-    player_distances_per_frame = speed_and_distance_calculator.calculate_distance(tactical_player_positions)
-    player_speed_per_frame = speed_and_distance_calculator.calculate_speed(player_distances_per_frame)
-    '''
-    # Draw output   
-    # Initialize Drawers
-    court_keypoint_drawer = CourtKeypointDrawer()
-    #tactical_view_drawer = TacticalViewDrawer()
 
-    ## Draw object Tracks
-    '''
-    output_video_frames = player_tracks_drawer.draw(video_frames, 
-                                                    player_tracks,
-                                                    player_assignment,
-                                                    ball_aquisition)
-    output_video_frames = ball_tracks_drawer.draw(output_video_frames, ball_tracks)
-    '''
     ## Draw KeyPoints
-    output_video_frames = court_keypoint_drawer.draw(video_frames, court_keypoints_per_frame, cv=True)
+    #output_video_frames = court_keypoint_drawer.draw(video_frames, court_keypoints_per_frame, cv=True)
     '''
     ## Draw Frame Number
     output_video_frames = frame_number_drawer.draw(output_video_frames)
-
-    ## Draw Tactical View
-    output_video_frames = tactical_view_drawer.draw(output_video_frames,
-                                                    tactical_view_converter.court_image_path,
-                                                    tactical_view_converter.width,
-                                                    tactical_view_converter.height,
-                                                    tactical_view_converter.key_points,
-                                                    tactical_player_positions,
-                                                    player_assignment,
-                                                    ball_aquisition,
-                                                    )
     '''
     # Save video
     save_video(output_video_frames, 'outputVideo/output_video5validated.mp4')
