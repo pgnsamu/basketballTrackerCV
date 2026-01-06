@@ -2,7 +2,7 @@ import os
 from utils import read_video, save_video
 from detectors.keypoint_detector import CourtKeypointDetector
 from drawers.courtKeypointDrawer import CourtKeypointDrawer
-from tactical_view.tactical_view import TacticalViewConverter
+from tactical_view_converter.tactical_view_converter import TacticalViewConverter
 
 def main():
     
@@ -32,6 +32,10 @@ def main():
                                                                     read_from_stub=False,
                                                                     stub_path='stubs/court_key_points_stub.pkl'
                                                                     )
+    
+    print(court_keypoints_per_frame, type(court_keypoints_per_frame))
+    
+    
     '''
     # Remove Wrong Ball Detections
     ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
