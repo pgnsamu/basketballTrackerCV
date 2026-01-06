@@ -6,14 +6,14 @@ from courtKeypointDrawer import CourtKeypointDrawer
 def main():
     
     # Read Video
-    video_frames = read_video('video_1.mp4')
+    video_frames = read_video('input_video/video_1.mp4')
     '''
     ## Initialize Tracker
     player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
     ball_tracker = BallTracker(BALL_DETECTOR_PATH)
     '''
     ## Initialize Keypoint Detector
-    court_keypoint_detector = CourtKeypointDetector('BEST2.pt')
+    court_keypoint_detector = CourtKeypointDetector('models/BEST2.pt')
     '''
     # Run Detectors
     player_tracks = player_tracker.get_object_tracks(video_frames,
