@@ -132,7 +132,7 @@ class TacticalViewConverter:
             keypoints_list[frame_idx] = frame_kps
 
         return keypoints_list
-
+'''
     def transform_players_to_tactical_view(self, keypoints_list, player_tracks):
         """
         Transform player positions from video frame coordinates to tactical view coordinates.
@@ -199,4 +199,4 @@ class TacticalViewConverter:
             tactical_player_positions.append(tactical_positions)
         
         return tactical_player_positions
-
+'''
