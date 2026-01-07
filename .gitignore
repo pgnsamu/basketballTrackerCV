@@ -1,0 +1,8 @@
+.*
+!.gitignore
+__pycache__
+*.pt
+*.classico
+stubs
+tactical_view_converter/homography.py
+outputVideo
