@@ -24,30 +24,33 @@ class DrawWindow:
 
     def mouse_callback(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
+            # store clicked point
             self.clicked_point = (x, y)
+            
             if self.picture_in_picture_section is not None and self.homography is not None:
-                y1, y2, x1, x2 = self.picture_in_picture_section
-                width = (x2 - x1)/self.scaleSmall
-                print("width PIP:", width)
-                height = (y2 - y1)/self.scaleSmall
-                print("height PIP:", height)
-                if x1 <= x <= x2 and y1 <= y <= y2:
-                    
-                    xFinal, yFinal = width * (x - x1) / (x2-x1), height * (y - y1) / (y2-y1)
+                # frame coordinates of PiP section
+                minY, maxY, minX, maxX = self.picture_in_picture_section
+                
+                # width and height of original photo before resizing to picture-in-picture size
+                width = (maxX - minX)/self.scaleSmall
+                height = (maxY - minY)/self.scaleSmall
+                
+                # check if clicked point is inside PiP
+                if minX <= x <= maxX and minY <= y <= maxY:
+                    # conversion to original photo coordinates as it was full-screen
+                    xFinal, yFinal = width * (x - minX) / (maxX - minX), height * (y - minY) / (maxY - minY)
                     point = np.array([[xFinal, yFinal]], dtype='float32')
                     
-                    print("Clicked inside PIP at:", (x, y))
-                    print("Clicked inside PIP at:", (xFinal, yFinal))
                     self.other_point = self.homography.transform_points(point, inverse=False)[0]
                 else:
                     point = np.array([[[x, y]]], dtype=np.float32)
                     tactical_pt = self.homography.transform_points(point.reshape(1, 2), inverse=True)[0]  # (tx,ty)
+                    # convert to original tactical image coordinates
+                    tacticalPointFoundX, tacticalPointFoundY = float(tactical_pt[0]), float(tactical_pt[1])
 
-                    tx, ty = float(tactical_pt[0]), float(tactical_pt[1])
-
-                    # TACTICAL original -> coordinate DENTRO PiP (quindi sul big frame)
-                    pip_x = x1 + tx * (width*self.scaleSmall / width)
-                    pip_y = y1 + ty * (height*self.scaleSmall / height)
+                    # resizing back to picture-in-picture scale
+                    pip_x = minX + tacticalPointFoundX * self.scaleSmall
+                    pip_y = minY + tacticalPointFoundY * self.scaleSmall
 
                     self.other_point = (pip_x, pip_y)
                       
@@ -56,15 +59,16 @@ class DrawWindow:
         """
         picture-in-picture composition of two frames
         """
-        # self.scale = scale
         
         # getting dimension of big frame
-        h, w = big.shape[:2]
         hsmall, wsmall = small.shape[:2]
         self.scaleBig = scale
         
         # resizing small frame
+        # removed because using this method the scale was different in width and height 
+        #h, w = big.shape[:2]
         #sh, sw = int(h*scale), int(w*scale)
+        
         sh, sw = 161, 300
         small = cv2.resize(small, (sw, sh))
         self.scaleSmall = sw / wsmall
@@ -74,6 +78,7 @@ class DrawWindow:
         
         # ritaglio un rettangolo e lo sostituisco con la small
         big[y:y+sh, x:x+sw] = small
+        # coordinates of picture-in-picture section in big frame
         self.picture_in_picture_section = (y,y+sh,x,x+sw)
         return big
     
@@ -90,8 +95,6 @@ class DrawWindow:
             annotated frame
         """
         annotated = frame.copy()
-        
-        print(points)
         
         # Draw other points
         if points is not None:
@@ -112,6 +115,8 @@ class DrawWindow:
 
             # Draw the clicked point
             display = self.point_drawer.drawSpecifiedPoint(self.clicked_point[0], self.clicked_point[1], display, color="#00FF00")
+            
+            # Draw the other point on the other image
             if self.other_point is not None:
                 display = self.point_drawer.drawSpecifiedPoint(self.other_point[0], self.other_point[1], display, color="#FF0095")
             
@@ -134,19 +139,25 @@ class DrawWindow:
             points_per_frame: list of np.ndarray, each of shape (N,2), float32
             homography: Homography object (optional)
         """
+        # container for video output
         frames_out = []
         
+        # draw small once
         frameImg = cv2.imread("images/basketball_court.png")
         frameImg = self.drawOnFrame(frameImg, point_per_small)
+        
         for frame_idx, frame in enumerate(frames):
+            # make homography for each frame
             homography = Homography(
                 source_points=point_per_small,
                 destination_points=points_per_frame[frame_idx]
             )
             self.setHomography(homography)
+            # taking frame from video and draw points took from yolo model
             frameSpec = frame.copy()
             frameSpec = self.drawOnFrame(frameSpec, points_per_frame[frame_idx])
             
+            # compose with picture-in-picture
             frame = self.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
             
             frames_out.append(frame)

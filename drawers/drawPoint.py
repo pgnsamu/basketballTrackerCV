@@ -19,7 +19,6 @@ class PointDrawer:
             annotated frame
         """
         
-        print(len(points))
         
         oneTimeColor = self.point_color        
         if color is not None:
