@@ -7,8 +7,8 @@ class Homography:
     def __init__(self, source_points, destination_points):
         self.source_points = source_points
         self.destination_points = destination_points
-        print("len of points to transform:", len(source_points))
-        print("len of destination points:", len(destination_points))
+        #print("len of points to transform:", len(source_points))
+        #print("len of destination points:", len(destination_points))
         
         # Remove invalid destination points (e.g., [-1, -1])
         valid_mask = ~((self.destination_points[:, 0] <= 0) & (self.destination_points[:, 1] <= 0))

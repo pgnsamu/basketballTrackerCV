@@ -47,9 +47,11 @@ def main():
                 destination_points=court_keypoints_per_frame[frame_idx]
             )
             # DEBUG display every 10 frames
-            if frame_idx % 10 == 0:
+            # Problems on 40, 50 (few kpts), 60, 70 (only 3 kpts detected),
+            #if frame_idx % 10 == 0:
+            if frame_idx in [40,60]:    
                 print(f"Calculated homography for frame {frame_idx}")
-                drawWindow = DrawWindow("Frame", homography)
+                drawWindow = DrawWindow(str(frame_idx), homography)
                 frameSpec = video_frames[frame_idx].copy()
                 frameSpec = drawWindow.drawOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
                 

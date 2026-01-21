@@ -8,7 +8,7 @@ from homography.homography import Homography
 
 folder_path = pathlib.Path(__file__).parent.resolve()
 sys.path.append(os.path.join(folder_path,"../"))
-from utils import get_foot_position, measure_distance
+from utils import get_foot_position, measure_distance, check_side
 
 class TacticalViewConverter:
     def __init__(self, court_image_path):
@@ -65,7 +65,11 @@ class TacticalViewConverter:
         Returns:
             list[np.ndarray]: validated keypoints, same structure
         """
-
+        # Types of modifies that we can do to workaround reflection of keypoints: 
+        # - calculate distance point with every other point
+        # - if it is possible, calculate the proportion without using 6, 7 (middle line) points (but in that case when we have only 3 points we have the same bug)
+        # - hardcode a condition that if there are more points from the left side (0-5, 8, 9) than from the right side (10-15, 16, 17) we invalidate the right side points and viceversa
+        # - control if 2 reflessive points are detected, find if there are other points that can help to invalidate one side 
         keypoints_list = deepcopy(keypoints_list)
         tactical_pts = np.array(self.key_points, dtype=np.float32)  # (18,2)
 
@@ -128,6 +132,12 @@ class TacticalViewConverter:
                 if error > 0.8:  # 80% di errore
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
+                
+                if 6 in detected_points or 7 in detected_points:
+                    side_result = check_side(frame_kps[p0], frame_kps[7 if 6 in detected_points else 6], p0)
+                    if side_result == 1:
+                        frame_kps[p0] = (0.0, 0.0)
+                        invalid_keypoints.append(p0)
 
             keypoints_list[frame_idx] = frame_kps
 
