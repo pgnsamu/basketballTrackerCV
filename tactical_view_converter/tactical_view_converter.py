@@ -8,7 +8,7 @@ from homography.homography import Homography
 
 folder_path = pathlib.Path(__file__).parent.resolve()
 sys.path.append(os.path.join(folder_path,"../"))
-from utils import get_foot_position, measure_distance, check_side
+from utils import measure_distance, check_side
 
 class TacticalViewConverter:
     def __init__(self, court_image_path):
