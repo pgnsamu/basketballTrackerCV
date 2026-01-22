@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from .drawPoint import PointDrawer
 from homography.homography import Homography
+from utils.detectedObject import DetectedObject
 
 class DrawWindow:
     
@@ -82,7 +83,7 @@ class DrawWindow:
         self.picture_in_picture_section = (y,y+sh,x,x+sw)
         return big
     
-    def drawOnFrame(self, frame, points: np.ndarray = None):
+    def drawPointsOnFrame(self, frame, points: np.ndarray = None):
         """
         Draw points on the frame.
 
@@ -100,6 +101,30 @@ class DrawWindow:
         if points is not None:
             annotated = self.point_drawer.drawPoints(annotated, points)
 
+        return annotated
+
+    def drawBoxOnFrame(self, frame, box: np.ndarray, color: str = "#00FF00", thickness: int = 2):
+        """
+        Draw a bounding box on the frame.
+
+        Args:
+            frame: BGR image (np.ndarray)
+            box: np.ndarray, shape (4,), float [x1,y1,x2,y2]
+            color: str, hex color code
+            thickness: int, thickness of the box lines
+
+        Returns:
+            annotated frame
+        """
+        annotated = frame.copy()
+        
+        # colore in BGR
+        color_bgr = tuple(int(color[i:i+2], 16) for i in (1, 3, 5))
+        color_bgr = color_bgr[::-1]  # RGB -> BGR
+
+        x1, y1, x2, y2 = map(int, box)
+        cv2.rectangle(annotated, (x1, y1), (x2, y2), color_bgr, thickness)
+        
         return annotated
 
     def realtimeDisplaying(self, frame):
@@ -128,7 +153,14 @@ class DrawWindow:
 
         cv2.destroyWindow(self.window_name)
         
-    def drawAllFrames(self, frames: list[np.ndarray], small, point_per_small: list[np.ndarray], points_per_frame: list[np.ndarray], homography: Homography = None ) -> list[np.ndarray]:
+    def drawAllFrames(
+            self, frames: list[np.ndarray], 
+            small: np.ndarray,
+            point_per_small: list[np.ndarray], 
+            points_per_frame: list[np.ndarray], 
+            players_boxes_per_frame: list[list[DetectedObject]] = None,
+            homography: Homography = None 
+        ) -> list[np.ndarray]:
         """
         Draw all frames with points transformed by the homography.
 
@@ -142,9 +174,9 @@ class DrawWindow:
         # container for video output
         frames_out = []
         
-        # draw small once
+        # draw small first
         frameImg = cv2.imread("images/basketball_court.png")
-        frameImg = self.drawOnFrame(frameImg, point_per_small)
+        frameImg = self.drawPointsOnFrame(frameImg, point_per_small)
         
         for frame_idx, frame in enumerate(frames):
             # make homography for each frame
@@ -155,7 +187,12 @@ class DrawWindow:
             self.setHomography(homography)
             # taking frame from video and draw points took from yolo model
             frameSpec = frame.copy()
-            frameSpec = self.drawOnFrame(frameSpec, points_per_frame[frame_idx])
+            frameSpec = self.drawPointsOnFrame(frameSpec, points_per_frame[frame_idx])
+            
+            if players_boxes_per_frame is not None:
+                for player_box in players_boxes_per_frame[frame_idx]:
+                    frameSpec = self.drawBoxOnFrame(frameSpec, player_box.xyxy)
+            
             
             # compose with picture-in-picture
             frame = self.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)

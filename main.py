@@ -6,6 +6,7 @@ from detectors.keypoint_detector import CourtKeypointDetector
 from tactical_view_converter.tactical_view_converter import TacticalViewConverter
 from homography.homography import Homography
 from drawers.drawWindow import DrawWindow
+from detectors.player_detector import PlayerDetector
 
 DEBUG = False
 
@@ -33,6 +34,27 @@ def main():
     ]
     '''
     
+    player_detector = PlayerDetector('models/bestEMA.pth', optimize=False)
+    
+    players_positions_per_frame, ball_positions_per_frame = player_detector.getBallPlayersPositions(
+        video_frames,
+        read_from_stub=True,
+        stub_path='stubs/players_positions_stub.pkl'
+    )
+    
+    '''
+    annotated_frame = video_frames[0].copy()
+    for player in players_positions_per_frame[0]:
+        x1, y1, x2, y2 = player.as_int_tuple()
+        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.circle(annotated_frame, (int(player.center[0]), int(player.center[1])), 5, (0, 0, 255), -1)
+
+    cv2.imshow("Players Detection", annotated_frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
+    
+    
     # Tactical View
     tactical_view_converter = TacticalViewConverter(
         court_image_path="./images/basketball_court.png"
@@ -53,11 +75,11 @@ def main():
                 print(f"Calculated homography for frame {frame_idx}")
                 drawWindow = DrawWindow(str(frame_idx), homography)
                 frameSpec = video_frames[frame_idx].copy()
-                frameSpec = drawWindow.drawOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
+                frameSpec = drawWindow.drawPointsOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
                 
                 #drawWindow.realtimeDisplaying(frameSpec, court_keypoints_per_frame[frame_idx])
                 frameImg = cv2.imread("images/basketball_court.png")
-                frameImg = drawWindow.drawOnFrame(frameImg, tactical_view_converter.getKeypointsForOpencv())
+                frameImg = drawWindow.drawPointsOnFrame(frameImg, tactical_view_converter.getKeypointsForOpencv())
                 #drawWindow.realtimeDisplaying(frameImg, tactical_view_converter.getKeypointsForOpencv())
                 frame = drawWindow.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
                 drawWindow.realtimeDisplaying(frame)
@@ -68,6 +90,7 @@ def main():
         frames=video_frames,
         small=tactical_court,
         point_per_small=tactical_view_converter.getKeypointsForOpencv(),
+        players_boxes_per_frame=players_positions_per_frame,
         points_per_frame=court_keypoints_per_frame
     )
 
