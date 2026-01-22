@@ -2,7 +2,9 @@
 !.gitignore
 __pycache__
 *.pt
+*.pth
 *.classico
 stubs
 tactical_view_converter/homography.py
 outputVideo
+
