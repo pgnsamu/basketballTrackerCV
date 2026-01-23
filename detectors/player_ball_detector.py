@@ -3,20 +3,18 @@ import supervision as sv
 import numpy as np
 import torch
 import cv2
-from utils import read_stub, save_stub, DetectedObject
+from utils import read_stub, save_stub, Player, Ball, detections_to_players, players_to_detections
+from typing import Optional
+
 
 #TODO: change the name of the class to PlayerBallDetector  
-class PlayerDetector:
+class PlayerBallDetector:
     def __init__(self, model_path: str, optimize: bool = True):
         self.model = RFDETRNano(
             pretrain_weights=model_path,
             device="cuda" if torch.cuda.is_available() else "cpu",
         )
 
-        # NOTE: `optimize_for_inference()` uses `torch.jit.trace`. If the model's forward
-        # returns non-tensor outputs (e.g., custom objects / dicts), tracing can fail with:
-        # "Only tensors, lists, tuples of tensors, or dictionary of tensors can be output..."
-        # In that case we just skip optimization and run eager inference.
         self.optimized = False
         if optimize:
             try:
@@ -26,11 +24,28 @@ class PlayerDetector:
                 print(
                     f"[WARN] optimize_for_inference() failed; running without TorchScript optimization. Error: {e}"
                 )
+                
+        try:
+            self.TRACKER = sv.ByteTrack()
+        except Exception:
+            self.TRACKER = sv.Sort()
+        
+        # Inference parameters
         self.INFERENCE_SIZE = 1280 # Resize the input image to this size for inference
         self.NMS_THRESHOLD = 0.45
+        
+        # Detection filtering
         self.ALLOWED_CLASS_IDS = {1, 4}  # 1=ball, 4=player
         self.EXCLUDED_CLASS_IDS = {9}    # 9=referee
         self.CLASS_THRESHOLDS = {1: 0.25, 4: 0.70, "default": 0.30}
+        
+        # Ball smoothing / persistence
+        self.BALL_EMA_ALPHA = 0.75
+        self.BALL_KEEP_FRAMES = 12
+
+        # Possession detection
+        self.POSSESSION_DIST_PX = 110
+        self.STABLE_FRAMES = 5
     
     def filter_detections(self, dets: sv.Detections):
         """
@@ -78,7 +93,7 @@ class PlayerDetector:
         
         return dets
     
-    def getPlayersPosition(self, frame, dets, read_from_stub=False, stub_path=None) -> list[DetectedObject]:
+    def getPlayersPosition(self, frame, dets, read_from_stub=False, stub_path=None) -> list[Player]:
         """
         Detect player positions in a given frame using the RFDETR model.
         Args:
@@ -86,18 +101,18 @@ class PlayerDetector:
             read_from_stub (bool, optional): Indicates whether to read detections from a stub file. Defaults to False.
             stub_path (str, optional): The file path for the stub file. Defaults to None.
         Returns:
-            list[DetectedObject]: A list of detected player positions in the frame.
+            list[Player]: A list of detected player positions in the frame.
         """
         
 
         players = dets[dets.class_id == 4] if len(dets) else sv.Detections.empty()
-        player_list: list[DetectedObject] = [
-            DetectedObject(xyxy=box.copy(), conf=float(conf), class_id=4) for box, conf in zip(players.xyxy, players.confidence)
+        player_list: list[Player] = [
+            Player(xyxy=box.copy(), conf=float(conf), class_id=4, track_id=None) for box, conf in zip(players.xyxy, players.confidence)
         ]
         
         return player_list
         
-    def getBallposition(self, frame, dets, read_from_stub=False, stub_path=None) -> list[DetectedObject]:
+    def getBallposition(self, frame, dets, read_from_stub=False, stub_path=None) -> list[Ball]:
         """
         Detect ball position in a given frame using the RFDETR model.
         Args:
@@ -105,18 +120,18 @@ class PlayerDetector:
             read_from_stub (bool, optional): Indicates whether to read detections from a stub file. Defaults to False.
             stub_path (str, optional): The file path for the stub file. Defaults to None.
         Returns:
-            list[DetectedObject]: A list of detected ball positions in the frame.
+            list[Ball]: A list of detected ball positions in the frame.
         """
 
         balls = dets[dets.class_id == 1] if len(dets) else sv.Detections.empty() 
         
-        ball_list: list[DetectedObject] = [
-            DetectedObject(xyxy=box.copy(), conf=float(conf), class_id=1) for box, conf in zip(balls.xyxy, balls.confidence)
+        ball_list: list[Ball] = [
+            Ball(xyxy=box.copy(), conf=float(conf), class_id=1) for box, conf in zip(balls.xyxy, balls.confidence)
         ]
         
         return ball_list
     
-    def getBallPlayersPositions(self, frames: list[np.ndarray], read_from_stub=False, stub_path=None) -> tuple[list[list[DetectedObject]], list[list[DetectedObject]]]:
+    def getBallPlayersPositions(self, frames: list[np.ndarray], read_from_stub=False, stub_path=None) -> tuple[list[list[Player]], list[list[Ball]]]:
         """
         Detect players positions in the full video
         Args:
@@ -125,7 +140,7 @@ class PlayerDetector:
             stub_path (str, optional): The file path for the stub file. Defaults to None. (should refer to players)
         
         Returns:
-            list[list[DetectedObject]]: A list of detected player positions in the frame.
+            list[list[Ball]]: A list of detected ball positions in the frame.
         """
         
         players_positions = read_stub(read_from_stub,stub_path)
@@ -136,30 +151,127 @@ class PlayerDetector:
         
         players_positions = []
         ball_positions = []
+        
+        poss_candidate = None
+        poss_streak = 0
+        current_possessor = None
+        
+        last_ball = None
+        last_keep = self.BALL_KEEP_FRAMES
+        
         for frame in frames:
             dets = self.getDetections(frame)
             
             players = self.getPlayersPosition(frame, dets)
-            ball = self.getBallposition(frame, dets)
+            
+            if len(players) > 0:
+                tracked_dets = self.TRACKER.update_with_detections(players_to_detections(players))
+                tracked_players: list[Player] = detections_to_players(tracked_dets)
+            else:
+                tracked_players = players
+                
 
-            if players is not None:
-                players_positions.append(players)
+            balls = self.getBallposition(frame, dets)
+            
+
+            
+            smoothed_ball, last_keep, ball_object = self.pick_ball_and_smooth(balls, last_ball, last_keep)
+            
+            candidate = self.find_possessor(tracked_players, smoothed_ball)
+            if candidate == poss_candidate:
+                poss_streak += 1
+            else:
+                poss_candidate = candidate
+                poss_streak = 1
+
+        # TODO: this seems like to not working
+            if poss_candidate is not None and poss_streak >= self.STABLE_FRAMES:
+                tracked_players[int(poss_candidate)].class_id = 99  # Mark possessor with special class_id 
+            
+
+            if tracked_players is not None:
+                players_positions.append(tracked_players)
             else:
                 players_positions.append([])
-            if ball is not None:
-                ball_positions.append(ball)
+            if ball_object is not None:
+                ball_positions.append(ball_object)
             else:
-                ball_positions.append([])
+                ball_positions.append(None)
 
-        #TODO: change in a better way
         save_stub(stub_path,players_positions)
         save_stub(stub_path.replace('players','balls'),ball_positions)
         
         return (players_positions, ball_positions)
+    
+    def pick_ball_and_smooth(self, balls: list[Ball], last_ball: Optional[Ball], last_keep: int) -> tuple[Optional[tuple[float, float]], int, Optional[Ball]]:
+        '''
+        Pick the most confident ball detection and apply EMA smoothing.
+        Args:
+            balls (list[Ball]): List of ball detections.
+            last_ball (Ball): Last smoothed ball position.
+            last_keep (int): Number of frames since last valid ball detection.
+        Returns:
+            tuple: (smoothed ball position [centers], updated frames last_keep, ball Object or None)
+        '''
+        if balls is not None and len(balls) > 0:
+            idx = int(np.argmax([b.conf for b in balls]))
+
+            if last_ball is None:
+                smoothed = balls[idx].center
+            else:
+                smoothed = (
+                    self.BALL_EMA_ALPHA * balls[idx].center[0] + (1 - self.BALL_EMA_ALPHA) * last_ball.center[0],
+                    self.BALL_EMA_ALPHA * balls[idx].center[1] + (1 - self.BALL_EMA_ALPHA) * last_ball.center[1]
+                )
+            
+            return smoothed, 0, balls[idx]
+            
+
+        if last_ball is not None and last_keep < self.BALL_KEEP_FRAMES:
+            return last_ball.center, last_keep + 1, None
+
+        return None, self.BALL_KEEP_FRAMES, None
         
-        
+       
+    def find_possessor(self, players: list[Player], ball_center: tuple[float, float]) -> int:
+        '''
+        Find the player in possession of the ball based on proximity.
+        Args:
+            players (list[Player]): Detected players.
+            ball_center (tuple[float, float]): Ball coordinates (x, y).
+        Returns:
+        int or None: Tracker ID of the player in possession, or None if no player is close enough.
+        '''
+        if ball_center is None or players is None or len(players) == 0:
+            return None
+
+        bx, by = ball_center
+        best_track_id = None
+        best_dist = 1e9
+
+        for player in players:
+            if player.track_id is None:
+                continue
+            
+            track_id = int(player.track_id)
+            player_x1, player_y1, player_x2, player_y2 = player.as_int_tuple()
+            
+            inside = (bx >= player_x1 and bx <= player_x2 and by >= player_y1 and by <= player_y2)
+            if inside:
+                dist = 0.0
+            else:
+                dist = float(np.hypot(bx - player.center[0], by - player.center[1]))
+
+            if dist < best_dist:
+                best_dist = dist
+                best_track_id = track_id
+
+        if best_dist > self.POSSESSION_DIST_PX:
+            return None
+        return best_track_id
+    
 if __name__ == "__main__":
-    detector = PlayerDetector('models/bestEMA.pth', optimize=False)
+    detector = PlayerBallDetector('models/bestEMA.pth', optimize=False)
     test_frame = cv2.imread('images/uno.png')
     dets = detector.getDetections(test_frame)
     player_positions = detector.getPlayersPosition(test_frame, dets)

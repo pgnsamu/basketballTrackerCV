@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 from copy import deepcopy
 from homography.homography import Homography
+from utils import Player
 
 folder_path = pathlib.Path(__file__).parent.resolve()
 sys.path.append(os.path.join(folder_path,"../"))
@@ -48,6 +49,7 @@ class TacticalViewConverter:
             (int(((self.actual_width_in_meters-5.79)/self.actual_width_in_meters)*self.width),int((5.18/self.actual_height_in_meters)*self.height)),
             (int(((self.actual_width_in_meters-5.79)/self.actual_width_in_meters)*self.width),int((10/self.actual_height_in_meters)*self.height)),
         ]
+           
     def getKeypointsForOpencv(self) -> np.ndarray:
         """
         Returns the tactical view keypoints as a numpy array suitable for OpenCV functions.
@@ -65,11 +67,6 @@ class TacticalViewConverter:
         Returns:
             list[np.ndarray]: validated keypoints, same structure
         """
-        # Types of modifies that we can do to workaround reflection of keypoints: 
-        # - calculate distance point with every other point
-        # - if it is possible, calculate the proportion without using 6, 7 (middle line) points (but in that case when we have only 3 points we have the same bug)
-        # - hardcode a condition that if there are more points from the left side (0-5, 8, 9) than from the right side (10-15, 16, 17) we invalidate the right side points and viceversa
-        # - control if 2 reflessive points are detected, find if there are other points that can help to invalidate one side 
         keypoints_list = deepcopy(keypoints_list)
         tactical_pts = np.array(self.key_points, dtype=np.float32)  # (18,2)
 
@@ -133,38 +130,35 @@ class TacticalViewConverter:
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
                 
-                if 6 in detected_points or 7 in detected_points:
-                    side_result = check_side(frame_kps[p0], frame_kps[7 if 6 in detected_points else 6], p0)
-                    if side_result == 1:
+                if (6 in detected_points or 7 in detected_points) and p0 != 6 and p0 !=7:
+                    # TODO: understand why at frame 41 and 42 there is 17 point drawn but not detected
+                    side_result = check_side(frame_kps[p0], frame_kps[7 if 7 in detected_points else 6], p0, frame_idx)
+                    if side_result == 0:
                         frame_kps[p0] = (0.0, 0.0)
                         invalid_keypoints.append(p0)
-
+                
             keypoints_list[frame_idx] = frame_kps
 
-        return keypoints_list
-'''
-    def transform_players_to_tactical_view(self, keypoints_list, player_tracks):
+        return keypoints_list            
+    
+    def transform_players_to_tactical_view(self, keypoints_list, players: list[list[Player]]) -> list[dict[int, list[float, float]]]:
         """
         Transform player positions from video frame coordinates to tactical view coordinates.
-        
         Args:
             keypoints_list (list): List of detected court keypoints for each frame.
-            player_tracks (list): List of dictionaries containing player tracking information for each frame,
-                where each dictionary maps player IDs to their bounding box coordinates.
-        
+            players (list): List of lists containing detected player objects for each frame.        
         Returns:
             list: List of dictionaries where each dictionary maps player IDs to their (x, y) positions
                 in the tactical view coordinate system. The list index corresponds to the frame number.
         """
         tactical_player_positions = []
         
-        for frame_idx, (frame_keypoints, frame_tracks) in enumerate(zip(keypoints_list, player_tracks)):
+        for frame_idx, _ in enumerate(keypoints_list):
+            frame_keypoints = keypoints_list[frame_idx]
+            players_in_frame = players[frame_idx]
             # Initialize empty dictionary for this frame
             tactical_positions = {}
 
-            frame_keypoints = frame_keypoints.xy.tolist()[0]
-
-            # Skip frames with insufficient keypoints
             if frame_keypoints is None or len(frame_keypoints) == 0:
                 tactical_player_positions.append(tactical_positions)
                 continue
@@ -185,22 +179,26 @@ class TacticalViewConverter:
             target_points = np.array([self.key_points[i] for i in valid_indices], dtype=np.float32)
             
             try:
+                # print("Creating homography for frame:", frame_idx, "with valid keypoints:", valid_indices)
                 # Create homography transformer
                 homography = Homography(source_points, target_points)
                 
-                # Transform each player's position
-                for player_id, player_data in frame_tracks.items():
-                    bbox = player_data["bbox"]
+                for player in players_in_frame:
+                    # TODO: check if everytime the player has track_id
+                    if player.track_id is None:
+                        continue
+                    player_id = int(player.track_id)
+                    bbox = player.xyxy
                     # Use bottom center of bounding box as player position
-                    player_position = np.array([get_foot_position(bbox)])
+                    player_position = np.array([player.foot])
                     # Transform to tactical view coordinates
-                    tactical_position = homography.transform_points(player_position)
-
+                    tactical_position = homography.transform_points(player_position.reshape(1, 2), inverse=False)
                     # If tactical position is not in the tactical view, skip
                     if tactical_position[0][0] < 0 or tactical_position[0][0] > self.width or tactical_position[0][1] < 0 or tactical_position[0][1] > self.height:
+                        #print("|||||||||||||||||||||||") # TODO: errore probabilmente qui 
                         continue
-
                     tactical_positions[player_id] = tactical_position[0].tolist()
+                    
                     
             except (ValueError, cv2.error) as e:
                 # If homography fails, continue with empty dictionary
@@ -209,4 +207,5 @@ class TacticalViewConverter:
             tactical_player_positions.append(tactical_positions)
         
         return tactical_player_positions
-'''
+
+    

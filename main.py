@@ -6,7 +6,7 @@ from detectors.keypoint_detector import CourtKeypointDetector
 from tactical_view_converter.tactical_view_converter import TacticalViewConverter
 from homography.homography import Homography
 from drawers.drawWindow import DrawWindow
-from detectors.player_detector import PlayerDetector
+from detectors.player_ball_detector import PlayerBallDetector
 
 DEBUG = False
 
@@ -34,9 +34,9 @@ def main():
     ]
     '''
     
-    player_detector = PlayerDetector('models/bestEMA.pth', optimize=False)
+    player_ball_detector = PlayerBallDetector('models/bestEMA.pth', optimize=False)
     
-    players_positions_per_frame, ball_positions_per_frame = player_detector.getBallPlayersPositions(
+    players_positions_per_frame, ball_positions_per_frame = player_ball_detector.getBallPlayersPositions(
         video_frames,
         read_from_stub=True,
         stub_path='stubs/players_positions_stub.pkl'
@@ -62,6 +62,9 @@ def main():
 
     court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
     
+    tactical_players_per_frame = tactical_view_converter.transform_players_to_tactical_view(court_keypoints_per_frame, players_positions_per_frame)
+    
+    
     if DEBUG:
         for frame_idx, frame in enumerate(video_frames):
             homography = Homography(
@@ -70,8 +73,7 @@ def main():
             )
             # DEBUG display every 10 frames
             # Problems on 40, 50 (few kpts), 60, 70 (only 3 kpts detected),
-            #if frame_idx % 10 == 0:
-            if frame_idx in [40,60]:    
+            if frame_idx % 10 == 0:  
                 print(f"Calculated homography for frame {frame_idx}")
                 drawWindow = DrawWindow(str(frame_idx), homography)
                 frameSpec = video_frames[frame_idx].copy()
@@ -90,7 +92,9 @@ def main():
         frames=video_frames,
         small=tactical_court,
         point_per_small=tactical_view_converter.getKeypointsForOpencv(),
-        players_boxes_per_frame=players_positions_per_frame,
+        players_per_frame=players_positions_per_frame,
+        tactical_players_per_frame=tactical_players_per_frame,
+        ball_per_frame=ball_positions_per_frame,
         points_per_frame=court_keypoints_per_frame
     )
 
@@ -101,7 +105,7 @@ def main():
     output_video_frames = frame_number_drawer.draw(output_video_frames)
     '''
     # Save video
-    save_video(output_video_frames, 'outputVideo/output_video5validated.mp4')
+    save_video(output_video_frames, 'outputVideo/output_video5validated3.mp4')
 
 if __name__ == '__main__':
     main()

@@ -1,74 +1,34 @@
 import cv2
 import numpy as np
 from .drawPoint import PointDrawer
-from homography.homography import Homography
-from utils.detectedObject import DetectedObject
+from utils import Player, Ball, bgr_to_hex
 
 class DrawWindow:
     
-    homography: Homography = None
-    
-    def __init__(self, window_name: str, homography: Homography = None):
+    def __init__(self, window_name: str):
         self.window_name = window_name
         cv2.namedWindow(self.window_name)
-        cv2.setMouseCallback(self.window_name, self.mouse_callback)
-        self.clicked_point = (0, 0)
         self.point_drawer = PointDrawer(point_color="#FF0000", point_radius=7)
-        self.homography = homography
         self.picture_in_picture_section = None
         self.other_point = None
         self.scaleBig = 0.25
-        self.scaleSmall = 1.0
-        
-    def setHomography(self, homography: Homography):
-        self.homography = homography
-
-    def mouse_callback(self, event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            # store clicked point
-            self.clicked_point = (x, y)
+        self.scaleSmall = 1.0                      
             
-            if self.picture_in_picture_section is not None and self.homography is not None:
-                # frame coordinates of PiP section
-                minY, maxY, minX, maxX = self.picture_in_picture_section
-                
-                # width and height of original photo before resizing to picture-in-picture size
-                width = (maxX - minX)/self.scaleSmall
-                height = (maxY - minY)/self.scaleSmall
-                
-                # check if clicked point is inside PiP
-                if minX <= x <= maxX and minY <= y <= maxY:
-                    # conversion to original photo coordinates as it was full-screen
-                    xFinal, yFinal = width * (x - minX) / (maxX - minX), height * (y - minY) / (maxY - minY)
-                    point = np.array([[xFinal, yFinal]], dtype='float32')
-                    
-                    self.other_point = self.homography.transform_points(point, inverse=False)[0]
-                else:
-                    point = np.array([[[x, y]]], dtype=np.float32)
-                    tactical_pt = self.homography.transform_points(point.reshape(1, 2), inverse=True)[0]  # (tx,ty)
-                    # convert to original tactical image coordinates
-                    tacticalPointFoundX, tacticalPointFoundY = float(tactical_pt[0]), float(tactical_pt[1])
-
-                    # resizing back to picture-in-picture scale
-                    pip_x = minX + tacticalPointFoundX * self.scaleSmall
-                    pip_y = minY + tacticalPointFoundY * self.scaleSmall
-
-                    self.other_point = (pip_x, pip_y)
-                      
-            
-    def composeFrame(self, big, small, pos=(0,0), scale=0.25):
+    def composeFrame(self, big, small, pos=(0,0), scale=0.25) -> np.ndarray:
         """
         picture-in-picture composition of two frames
+        Args:
+            big: BGR image (np.ndarray)
+            small: BGR image (np.ndarray)
+            pos: tuple (x,y) position of small frame in big frame
+            scale: float, scaling factor for small frame
+        Returns:
+            composed frame
         """
         
         # getting dimension of big frame
         hsmall, wsmall = small.shape[:2]
         self.scaleBig = scale
-        
-        # resizing small frame
-        # removed because using this method the scale was different in width and height 
-        #h, w = big.shape[:2]
-        #sh, sw = int(h*scale), int(w*scale)
         
         sh, sw = 161, 300
         small = cv2.resize(small, (sw, sh))
@@ -83,7 +43,7 @@ class DrawWindow:
         self.picture_in_picture_section = (y,y+sh,x,x+sw)
         return big
     
-    def drawPointsOnFrame(self, frame, points: np.ndarray = None):
+    def drawPointsOnFrame(self, frame, points: np.ndarray = None) -> np.ndarray:
         """
         Draw points on the frame.
 
@@ -103,7 +63,7 @@ class DrawWindow:
 
         return annotated
 
-    def drawBoxOnFrame(self, frame, box: np.ndarray, color: str = "#00FF00", thickness: int = 2):
+    def drawBoxOnFrame(self, frame, box: np.ndarray, color: str = "#00FF00", thickness: int = 2) -> np.ndarray:
         """
         Draw a bounding box on the frame.
 
@@ -127,7 +87,7 @@ class DrawWindow:
         
         return annotated
 
-    def realtimeDisplaying(self, frame):
+    def realtimeDisplaying(self, frame: np.ndarray, frame_idx: int = None) -> None:
         """
         Display the frame in a window and allow user to click on it to get coordinates.
 
@@ -138,38 +98,61 @@ class DrawWindow:
             display = frame.copy()
             #display = cv2.resize(display, (width, height))
 
-            # Draw the clicked point
-            display = self.point_drawer.drawSpecifiedPoint(self.clicked_point[0], self.clicked_point[1], display, color="#00FF00")
-            
-            # Draw the other point on the other image
-            if self.other_point is not None:
-                display = self.point_drawer.drawSpecifiedPoint(self.other_point[0], self.other_point[1], display, color="#FF0095")
-            
-            cv2.imshow(self.window_name, display)
+            cv2.imshow(str(frame_idx) if frame_idx is not None else self.window_name, display)
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 break
 
         cv2.destroyWindow(self.window_name)
-        
+    
+    def draw_player_ellipse(frame: np.ndarray, player: Player, color: tuple[int, int, int], is_possessor: bool):
+        x1, y1, x2, y2 = player.as_int_tuple()
+        number = player.track_id if player.track_id is not None else 0
+        cx, cy = int(player.center[0]), int(player.center[1])
+        foot_x, foot_y = int(player.foot[0]), int(player.foot[1])
+
+        w = max(12, x2 - x1)
+        ax1 = int(w * 0.55)
+        ax2 = int(w * 0.22)
+
+        # black outline to keep white jerseys visible
+        cv2.ellipse(frame, (cx, foot_y), (ax1, ax2), 0, 0, 360, (0, 0, 0), 5, cv2.LINE_AA)
+        cv2.ellipse(frame, (cx, foot_y), (ax1, ax2), 0, 0, 360, color, 3, cv2.LINE_AA)
+
+        if is_possessor:
+            cv2.ellipse(frame, (cx, cy), (ax1 + 8, ax2 + 6), 0, 0, 360, (0, 255, 255), 3, cv2.LINE_AA)
+
+        label = str(number)
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+        lx = cx - tw // 2
+        ly = max(th + 10, y1 - 10)
+        cv2.rectangle(frame, (lx - 6, ly - th - 6), (lx + tw + 6, ly + 6), color, -1)
+        cv2.putText(frame, label, (lx, ly), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv2.LINE_AA)
+    
+    
     def drawAllFrames(
             self, frames: list[np.ndarray], 
             small: np.ndarray,
             point_per_small: list[np.ndarray], 
             points_per_frame: list[np.ndarray], 
-            players_boxes_per_frame: list[list[DetectedObject]] = None,
-            homography: Homography = None 
+            players_per_frame: list[list[Player]] = None,
+            tactical_players_per_frame: list[dict[int, list[float, float]]] = None,
+            ball_per_frame: list[Ball] = None,
         ) -> list[np.ndarray]:
         """
-        Draw all frames with points transformed by the homography.
+        Draw all frames with points and boxes.
 
         Args:
             frames: list of BGR images (np.ndarray)
             small: BGR image (np.ndarray) for picture-in-picture
             point_per_small: np.ndarray, shape (N,2), float32
             points_per_frame: list of np.ndarray, each of shape (N,2), float32
-            homography: Homography object (optional)
+            players_per_frame: list of list of Player  per frame
+            tactical_players_per_frame: list of dict of player_id to (x,y) coordinates
+            ball_per_frame: objects of Ball per frame
+        Returns:
+            list of annotated frames
         """
         # container for video output
         frames_out = []
@@ -178,25 +161,45 @@ class DrawWindow:
         frameImg = cv2.imread("images/basketball_court.png")
         frameImg = self.drawPointsOnFrame(frameImg, point_per_small)
         
+        frame = self.composeFrame(frames[0].copy(), frameImg, pos=(10,10), scale=0.3)
+        
+        # TODO: to be removed from here, the logic of tracking players feature in the drawing class is soooooo wrong
+        jersery_colors = {}
+        # playerNumber is the same of track_id so why recalculating it again?
+        
+        
         for frame_idx, frame in enumerate(frames):
-            # make homography for each frame
-            homography = Homography(
-                source_points=point_per_small,
-                destination_points=points_per_frame[frame_idx]
-            )
-            self.setHomography(homography)
             # taking frame from video and draw points took from yolo model
+            frameTactical = frameImg.copy()
             frameSpec = frame.copy()
             frameSpec = self.drawPointsOnFrame(frameSpec, points_per_frame[frame_idx])
             
-            if players_boxes_per_frame is not None:
-                for player_box in players_boxes_per_frame[frame_idx]:
-                    frameSpec = self.drawBoxOnFrame(frameSpec, player_box.xyxy)
             
+            # can be divided in more functions to have a better readability
+            if players_per_frame[frame_idx] is not None:
+                for player in players_per_frame[frame_idx]:
+                    #print("Drawing player box with class_id:", player)
+                    if player.class_id == 99:
+                        print("Drawing possessor box:", player)
+                    if player.class_id == 99:  # Possessor
+                        frameSpec = self.drawBoxOnFrame(frameSpec, player.xyxy, color="#FF0000", thickness=3)
+                    else:
+                        if player.track_id not in jersery_colors:
+                            jersery_colors[player.track_id] = player.get_dominant_jersey_color(frameSpec)
+                        #frameSpec = self.drawBoxOnFrame(frameSpec, player.xyxy, color=jersery_colors[player.track_id], thickness=2)
+                        DrawWindow.draw_player_ellipse(frameSpec, player, jersery_colors[player.track_id], is_possessor=False)
+                
+                for k, tactical_player_coord in tactical_players_per_frame[frame_idx].items():
+                    frameTactical = self.point_drawer.drawSpecifiedPoint(tactical_player_coord[0], tactical_player_coord[1], frameTactical, color="#FF00B3")
+                
+                if ball_per_frame is not None and ball_per_frame[frame_idx] is not None:
+                    ball = ball_per_frame[frame_idx]
+                    frameSpec = self.drawBoxOnFrame(frameSpec, ball.xyxy, color="#0000FF", thickness=2)
+                    
             
             # compose with picture-in-picture
-            frame = self.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
-            
+            frame = self.composeFrame(frameSpec, frameTactical, pos=(10,10), scale=0.3)
+            # self.realtimeDisplaying(frame, frame_idx)
             frames_out.append(frame)
         return frames_out
         
