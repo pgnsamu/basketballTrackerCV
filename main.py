@@ -1,4 +1,7 @@
 import os
+# --- FIX PER ERRORE OMP: Error #15 ---
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+# -------------------------------------
 import cv2
 import numpy as np
 from utils import read_video, save_video
@@ -17,7 +20,7 @@ def main():
     video_frames = read_video('input_video/video_1.mp4')
 
     ## Initialize Keypoint Detector
-    court_keypoint_detector = CourtKeypointDetector('models/BEST2.pt')
+    court_keypoint_detector = CourtKeypointDetector('models/best_minimap.pt')
     
     ## Run KeyPoint Extractor
     court_keypoints_per_frame = court_keypoint_detector.get_court_keypoints(video_frames,
@@ -34,7 +37,7 @@ def main():
     ]
     '''
     
-    player_ball_detector = PlayerBallDetector('models/bestEMA.pth', optimize=False)
+    player_ball_detector = PlayerBallDetector('models/best_player.pt')
     
     players_positions_per_frame, ball_positions_per_frame = player_ball_detector.getBallPlayersPositions(
         video_frames,
@@ -79,10 +82,10 @@ def main():
                 frameSpec = video_frames[frame_idx].copy()
                 frameSpec = drawWindow.drawPointsOnFrame(frameSpec, court_keypoints_per_frame[frame_idx])
                 
-                #drawWindow.realtimeDisplaying(frameSpec, court_keypoints_per_frame[frame_idx])
+                drawWindow.realtimeDisplaying(frameSpec, court_keypoints_per_frame[frame_idx])
                 frameImg = cv2.imread("images/basketball_court.png")
                 frameImg = drawWindow.drawPointsOnFrame(frameImg, tactical_view_converter.getKeypointsForOpencv())
-                #drawWindow.realtimeDisplaying(frameImg, tactical_view_converter.getKeypointsForOpencv())
+                drawWindow.realtimeDisplaying(frameImg, tactical_view_converter.getKeypointsForOpencv())
                 frame = drawWindow.composeFrame(frameSpec, frameImg, pos=(10,10), scale=0.3)
                 drawWindow.realtimeDisplaying(frame)
         

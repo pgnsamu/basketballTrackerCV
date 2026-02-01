@@ -1,4 +1,4 @@
-from rfdetr import RFDETRNano
+from ultralytics import YOLO
 import supervision as sv
 import numpy as np
 import torch
@@ -6,93 +6,99 @@ import cv2
 from utils import read_stub, save_stub, Player, Ball, detections_to_players, players_to_detections
 from typing import Optional
 
-
-#TODO: change the name of the class to PlayerBallDetector  
 class PlayerBallDetector:
-    def __init__(self, model_path: str, optimize: bool = True):
-        self.model = RFDETRNano(
-            pretrain_weights=model_path,
-            device="cuda" if torch.cuda.is_available() else "cpu",
-        )
-
-        self.optimized = False
-        if optimize:
-            try:
-                self.model.optimize_for_inference()
-                self.optimized = True
-            except RuntimeError as e:
-                print(
-                    f"[WARN] optimize_for_inference() failed; running without TorchScript optimization. Error: {e}"
-                )
-                
+    def __init__(self, model_path: str):
+        """
+        Inizializza il rilevatore con il modello YOLO11.
+        """
+        print(f"🔄 Caricamento Modello YOLO11 da: {model_path}")
+        
+        # 1. CARICAMENTO MODELLO
         try:
+            self.model = YOLO(model_path)
+        except Exception as e:
+            raise FileNotFoundError(f"❌ Impossibile caricare il modello: {e}")
+
+        # 2. SETUP GPU
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"✅ Device attivo: {self.device}")
+
+        # 3. OTTIMIZZAZIONE (Fusing)
+        # Unisce i layer Conv2d + BatchNorm per velocizzare l'inferenza su GPU
+        try:
+            print("🚀 Ottimizzazione modello (Fusing layers)...")
+            self.model.fuse()
+        except Exception as e:
+            print(f"⚠️ Warning: Fuse non riuscito (non critico): {e}")
+
+        # 4. TRACKER
+        # ByteTrack è ottimo per gestire le occlusioni dei giocatori
+        try:
+
             self.TRACKER = sv.ByteTrack()
+        
         except Exception:
+        
             self.TRACKER = sv.Sort()
+        # 5. PARAMETRI INFERENZA
+        self.INFERENCE_SIZE = 1280  # FONDAMENTALE: Hai allenato a 1280px!
+        self.CONF_THRESHOLD = 0.45  # Confidenza base per accettare una detection
         
-        # Inference parameters
-        self.INFERENCE_SIZE = 1280 # Resize the input image to this size for inference
-        self.NMS_THRESHOLD = 0.45
-        
-        # Detection filtering
-        self.ALLOWED_CLASS_IDS = {1, 4}  # 1=ball, 4=player
-        self.EXCLUDED_CLASS_IDS = {9}    # 9=referee
-        self.CLASS_THRESHOLDS = {1: 0.25, 4: 0.70, "default": 0.30}
-        
-        # Ball smoothing / persistence
+        # --- FILTRI CLASSI (DA VERIFICARE NEL TUO DATA.YAML) ---
+        # Di solito in Roboflow: 0=Ball, 1=Hoop, 2=Player, 3=Referee... 
+        # MA controlla il tuo data.yaml per essere sicuro! 
+        # Qui assumo: 1=Ball, 4=Player come nel tuo vecchio codice, ma CAMBIALI SE SERVE.
+        self.CLASS_ID_BALL = 1
+        self.CLASS_ID_PLAYER = 4
+        self.EXCLUDED_CLASS_IDS = [9] # Esempio arbitro
+
+        # Soglie specifiche per classe
+        self.CLASS_THRESHOLDS = {
+            self.CLASS_ID_BALL: 0.25,   # Palla: accettiamo anche confidenza bassa
+            self.CLASS_ID_PLAYER: 0.50, # Giocatori: vogliamo essere più sicuri
+        }
+
+        # Logica di gioco (Possesso e Smoothing)
         self.BALL_EMA_ALPHA = 0.75
         self.BALL_KEEP_FRAMES = 12
-
-        # Possession detection
         self.POSSESSION_DIST_PX = 110
         self.STABLE_FRAMES = 5
-    
-    def filter_detections(self, dets: sv.Detections):
+
+    def getDetections(self, frame) -> sv.Detections:
         """
-        Filter detections based on class IDs and confidence thresholds.
-        Args:
-            dets (sv.Detections): The detections to filter.
-        Returns:
-            sv.Detections: The filtered detections.
+        Esegue YOLO sul frame e restituisce sv.Detections filtrato.
         """
-        if dets is None or len(dets) == 0:
+        # 1. Inferenza YOLO
+        results = self.model.predict(
+            frame, 
+            imgsz=self.INFERENCE_SIZE, 
+            conf=0.15, # Teniamo basso qui, filtriamo dopo
+            device=self.device,
+            verbose=False # Silenzia l'output nella console
+        )[0] # Prendi il primo risultato (singolo frame)
+
+        # 2. Conversione in Supervision
+        detections = sv.Detections.from_ultralytics(results)
+
+        # 3. Filtro manuale Classi e Confidenza
+        if len(detections) == 0:
             return sv.Detections.empty()
 
-        keep = []
-        for i, (cid, conf) in enumerate(zip(dets.class_id, dets.confidence)):
-            cid = int(cid)
-            if cid in self.EXCLUDED_CLASS_IDS:
-                continue
-            if cid not in self.ALLOWED_CLASS_IDS:
-                continue
-            thr = self.CLASS_THRESHOLDS.get(cid, self.CLASS_THRESHOLDS["default"])
-            if float(conf) < thr:
-                continue
-            keep.append(i)
+        # Filtra via classi escluse (es. arbitri)
+        detections = detections[~np.isin(detections.class_id, self.EXCLUDED_CLASS_IDS)]
 
-        if not keep:
-            return sv.Detections.empty()
-        return dets[np.array(keep)]
-    
-    def getDetections(self, frame, read_from_stub=False, stub_path=None) -> sv.Detections:
-        """
-        Get filtered detections for a given frame using the RFDETR model.
-        Args:
-            frame (numpy.ndarray): The input image frame.
-            read_from_stub (bool, optional): Indicates whether to read detections from a stub file. Defaults to False.
-            stub_path (str, optional): The file path for the stub file. Defaults to None.
-        Returns:
-            sv.Detections: The filtered detections in the frame.
-        """
-        with torch.no_grad():
-            dets = self.model.predict(frame, threshold=0.10, imgsz=self.INFERENCE_SIZE)
+        # Filtra classi permesse e applica soglie custom
+        filter_mask = []
+        for class_id, confidence in zip(detections.class_id, detections.confidence):
+            if class_id == self.CLASS_ID_BALL and confidence >= self.CLASS_THRESHOLDS.get(self.CLASS_ID_BALL, 0.25):
+                filter_mask.append(True)
+            elif class_id == self.CLASS_ID_PLAYER and confidence >= self.CLASS_THRESHOLDS.get(self.CLASS_ID_PLAYER, 0.50):
+                filter_mask.append(True)
+            else:
+                filter_mask.append(False)
         
-        dets = dets.with_nms(threshold=self.NMS_THRESHOLD)
-        dets = self.filter_detections(dets)
-        
-        
-        return dets
-    
+        return detections[np.array(filter_mask)]
+
     def getPlayersPosition(self, frame, dets, read_from_stub=False, stub_path=None) -> list[Player]:
         """
         Detect player positions in a given frame using the RFDETR model.
