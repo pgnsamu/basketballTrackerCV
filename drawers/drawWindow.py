@@ -12,7 +12,9 @@ class DrawWindow:
         self.picture_in_picture_section = None
         self.other_point = None
         self.scaleBig = 0.25
-        self.scaleSmall = 1.0                      
+        self.scaleSmall = 1.0
+        
+        self.jersey_colors_cache = {}                      
             
     def composeFrame(self, big, small, pos=(0,0), scale=0.25) -> np.ndarray:
         """
@@ -127,7 +129,9 @@ class DrawWindow:
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
         lx = cx - tw // 2
         ly = max(th + 10, y1 - 10)
-        cv2.rectangle(frame, (lx - 6, ly - th - 6), (lx + tw + 6, ly + 6), color, -1)
+        
+        cv2.rectangle(frame, (lx - 5, ly - th - 5), (lx + tw + 5, ly + 5), (0,0,0), -1)
+        cv2.rectangle(frame, (lx - 6, ly - th - 6), (lx + tw + 6, ly + 6), color, 1)
         cv2.putText(frame, label, (lx, ly), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv2.LINE_AA)
     
     
@@ -164,12 +168,14 @@ class DrawWindow:
         frame = self.composeFrame(frames[0].copy(), frameImg, pos=(10,10), scale=0.3)
         
         # TODO: to be removed from here, the logic of tracking players feature in the drawing class is soooooo wrong
-        jersery_colors = {}
         # playerNumber is the same of track_id so why recalculating it again?
         
         
         for frame_idx, frame in enumerate(frames):
             # taking frame from video and draw points took from yolo model
+            
+            if frame_idx % 50 == 0: print(f"Rendering {frame_idx}/{len(frames)}")
+            
             frameTactical = frameImg.copy()
             frameSpec = frame.copy()
             frameSpec = self.drawPointsOnFrame(frameSpec, points_per_frame[frame_idx])
@@ -178,17 +184,28 @@ class DrawWindow:
             # can be divided in more functions to have a better readability
             if players_per_frame[frame_idx] is not None:
                 for player in players_per_frame[frame_idx]:
+                    
+                    if player.track_id not in self.jersey_colors_cache:
+                        self.jersey_colors_cache[player.track_id] = player.get_dominant_jersey_color(frame)
+                    
+                    color = self.jersey_colors_cache[player.track_id]
+                    is_possessor = (player.class_id == 99)
+                    
+                    DrawWindow.draw_player_ellipse(frameSpec, player, color, is_possessor=is_possessor)
+                    
+                    
+                    '''
                     #print("Drawing player box with class_id:", player)
                     if player.class_id == 99:
                         print("Drawing possessor box:", player)
                     if player.class_id == 99:  # Possessor
                         frameSpec = self.drawBoxOnFrame(frameSpec, player.xyxy, color="#FF0000", thickness=3)
                     else:
-                        if player.track_id not in jersery_colors:
+                        if player.track_id not in self.jersey_colors_cache:
                             jersery_colors[player.track_id] = player.get_dominant_jersey_color(frameSpec)
                         #frameSpec = self.drawBoxOnFrame(frameSpec, player.xyxy, color=jersery_colors[player.track_id], thickness=2)
-                        DrawWindow.draw_player_ellipse(frameSpec, player, jersery_colors[player.track_id], is_possessor=False)
-                
+                        DrawWindow.draw_player_ellipse(frameSpec, player, jersery_colors[player.track_id], is_possessor=is_possessor)
+                    '''
                 for k, tactical_player_coord in tactical_players_per_frame[frame_idx].items():
                     frameTactical = self.point_drawer.drawSpecifiedPoint(tactical_player_coord[0], tactical_player_coord[1], frameTactical, color="#FF00B3")
                 

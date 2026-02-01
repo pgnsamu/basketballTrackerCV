@@ -10,6 +10,7 @@ from tactical_view_converter.tactical_view_converter import TacticalViewConverte
 from homography.homography import Homography
 from drawers.drawWindow import DrawWindow
 from detectors.player_ball_detector import PlayerBallDetector
+from detectors.player_tracker import PlayerTracker
 
 DEBUG = False
 
@@ -54,7 +55,10 @@ def main():
         stub_path='stubs/players_positions_stub_v2.pkl'
     )
     '''
-    
+    print("Interpolating Data...")
+    tracker = PlayerTracker()
+    ball_positions_per_frame = tracker.interpolate_ball_positions(ball_positions_per_frame)
+    players_positions_per_frame = tracker.interpolate_player_positions(players_positions_per_frame)
     
     # Tactical View
     tactical_view_converter = TacticalViewConverter(
