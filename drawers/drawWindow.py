@@ -72,7 +72,7 @@ class DrawWindow:
 
     def drawAllFrames(self, frames, small, point_per_small, points_per_frame, 
                       players_per_frame=None, tactical_players_per_frame=None, 
-                      ball_per_frame=None, tactical_ball_per_frame=None):
+                      ball_per_frame=None): #, tactical_ball_per_frame=None):
         
         frames_out = []
         base_court = cv2.imread("images/basketball_court.png")

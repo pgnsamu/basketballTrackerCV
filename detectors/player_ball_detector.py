@@ -243,8 +243,7 @@ class PlayerBallDetector:
             ball_positions.append(ball_object) # Salviamo l'oggetto Ball o None
 
         save_stub(stub_path, players_positions)
-        if stub_path:
-            save_stub(stub_path.replace('players', 'balls'), ball_positions)
+        save_stub(stub_path.replace('players', 'balls'), ball_positions)
         
         return (players_positions, ball_positions)
     

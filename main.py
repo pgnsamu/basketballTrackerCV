@@ -43,8 +43,8 @@ def main():
     tactical_converter = TacticalViewConverter(court_image_path="./images/basketball_court.png")
     
     # NUOVO: Ritorna anche la palla tattica
-    tactical_players, tactical_ball = tactical_converter.transform_players_to_tactical_view(
-        court_keypoints, players_pos, ball_list=ball_pos
+    tactical_players = tactical_converter.transform_players_to_tactical_view(
+        court_keypoints, players_pos
     )
 
     # 5. Rendering
@@ -58,7 +58,7 @@ def main():
         players_per_frame=players_pos,
         tactical_players_per_frame=tactical_players,
         ball_per_frame=ball_pos,
-        tactical_ball_per_frame=tactical_ball # Passiamo la palla tattica
+       # tactical_ball_per_frame=tactical_ball # Passiamo la palla tattica
     )
 
     # 6. Salvataggio
