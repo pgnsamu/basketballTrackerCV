@@ -8,3 +8,5 @@ stubs
 tactical_view_converter/homography.py
 outputVideo
 
+*.mp4
+
