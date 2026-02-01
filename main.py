@@ -20,12 +20,12 @@ def main():
     video_frames = read_video('input_video/video_1.mp4')
 
     ## Initialize Keypoint Detector
-    court_keypoint_detector = CourtKeypointDetector('models/best_minimap.pt')
+    court_keypoint_detector = CourtKeypointDetector('models/keycourt.pt')
     
     ## Run KeyPoint Extractor
     court_keypoints_per_frame = court_keypoint_detector.get_court_keypoints(video_frames,
                                                                     read_from_stub=True,
-                                                                    stub_path='stubs/court_key_points_stub.pkl'
+                                                                    stub_path='stubs/court_key_points_stub_copia.pkl'
                                                                     )
     # [1, 18, 2]
     '''
@@ -37,24 +37,22 @@ def main():
     ]
     '''
     
-    player_ball_detector = PlayerBallDetector('models/best_player.pt')
+    player_ball_detector = PlayerBallDetector('models/PlayerDet.pt', yolo=True)
     
     players_positions_per_frame, ball_positions_per_frame = player_ball_detector.getBallPlayersPositions(
         video_frames,
         read_from_stub=True,
         stub_path='stubs/players_positions_stub.pkl'
     )
-    
     '''
-    annotated_frame = video_frames[0].copy()
-    for player in players_positions_per_frame[0]:
-        x1, y1, x2, y2 = player.as_int_tuple()
-        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.circle(annotated_frame, (int(player.center[0]), int(player.center[1])), 5, (0, 0, 255), -1)
-
-    cv2.imshow("Players Detection", annotated_frame)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # using old model for comparison
+    player_ball_detector2 = PlayerBallDetector('models/bestEMA.pth', yolo=False)
+    
+    players_positions_per_frame2, ball_positions_per_frame2 = player_ball_detector2.getBallPlayersPositions(
+        video_frames,
+        read_from_stub=False,
+        stub_path='stubs/players_positions_stub_v2.pkl'
+    )
     '''
     
     

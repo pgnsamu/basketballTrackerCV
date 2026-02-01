@@ -1,4 +1,5 @@
 from ultralytics import YOLO
+from rfdetr import RFDETRNano
 import supervision as sv
 import numpy as np
 import torch
@@ -7,97 +8,133 @@ from utils import read_stub, save_stub, Player, Ball, detections_to_players, pla
 from typing import Optional
 
 class PlayerBallDetector:
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, yolo: bool = True, optimize: bool = True):
         """
-        Inizializza il rilevatore con il modello YOLO11.
+        Inizializza il rilevatore con il modello YOLO11 o RFDETRNano.
         """
-        print(f"🔄 Caricamento Modello YOLO11 da: {model_path}")
         
+        self.using_yolo = yolo   
         # 1. CARICAMENTO MODELLO
         try:
-            self.model = YOLO(model_path)
+            if self.using_yolo:
+                self.model = YOLO(model_path)
+            else:
+                self.model = RFDETRNano(
+                    pretrain_weights=model_path,
+                    device="cuda" if torch.cuda.is_available() else "cpu",
+                )
         except Exception as e:
-            raise FileNotFoundError(f"❌ Impossibile caricare il modello: {e}")
+            raise FileNotFoundError(f"Impossibile caricare il modello: {e}")
 
         # 2. SETUP GPU
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"✅ Device attivo: {self.device}")
+
 
         # 3. OTTIMIZZAZIONE (Fusing)
         # Unisce i layer Conv2d + BatchNorm per velocizzare l'inferenza su GPU
         try:
-            print("🚀 Ottimizzazione modello (Fusing layers)...")
-            self.model.fuse()
+            if self.using_yolo and optimize:
+                self.model.fuse()
+            elif not self.using_yolo and optimize:
+                self.model.optimize_for_inference()
+                self.optimized = True
         except Exception as e:
-            print(f"⚠️ Warning: Fuse non riuscito (non critico): {e}")
+             f"[WARN] optimize_for_inference() failed; running without TorchScript optimization. Error: {e}"
 
         # 4. TRACKER
         # ByteTrack è ottimo per gestire le occlusioni dei giocatori
         try:
-
             self.TRACKER = sv.ByteTrack()
-        
         except Exception:
-        
             self.TRACKER = sv.Sort()
+            
+            
         # 5. PARAMETRI INFERENZA
         self.INFERENCE_SIZE = 1280  # FONDAMENTALE: Hai allenato a 1280px!
         self.CONF_THRESHOLD = 0.45  # Confidenza base per accettare una detection
         
-        # --- FILTRI CLASSI (DA VERIFICARE NEL TUO DATA.YAML) ---
-        # Di solito in Roboflow: 0=Ball, 1=Hoop, 2=Player, 3=Referee... 
-        # MA controlla il tuo data.yaml per essere sicuro! 
-        # Qui assumo: 1=Ball, 4=Player come nel tuo vecchio codice, ma CAMBIALI SE SERVE.
-        self.CLASS_ID_BALL = 1
-        self.CLASS_ID_PLAYER = 4
-        self.EXCLUDED_CLASS_IDS = [9] # Esempio arbitro
-
-        # Soglie specifiche per classe
-        self.CLASS_THRESHOLDS = {
-            self.CLASS_ID_BALL: 0.25,   # Palla: accettiamo anche confidenza bassa
-            self.CLASS_ID_PLAYER: 0.50, # Giocatori: vogliamo essere più sicuri
-        }
+        if self.using_yolo:
+            self.CLASS_ID_BALL = 0
+            self.CLASS_ID_PLAYER = 3
+        else:
+            self.CLASS_ID_BALL = 1
+            self.CLASS_ID_PLAYER = 4
+        
+        self.NMS_THRESHOLD = 0.45  # Non-Maximum Suppression threshold
 
         # Logica di gioco (Possesso e Smoothing)
         self.BALL_EMA_ALPHA = 0.75
         self.BALL_KEEP_FRAMES = 12
         self.POSSESSION_DIST_PX = 110
         self.STABLE_FRAMES = 5
-
-    def getDetections(self, frame) -> sv.Detections:
+        
+        
+        # Detection filtering
+        self.ALLOWED_CLASS_IDS = {self.CLASS_ID_BALL, self.CLASS_ID_PLAYER}
+        self.EXCLUDED_CLASS_IDS = {9}    # 9=referee can be deleted
+        self.CLASS_THRESHOLDS = {self.CLASS_ID_BALL: 0.25, self.CLASS_ID_PLAYER: 0.70, "default": 0.30}
+        
+        
+    def filter_detections(self, dets: sv.Detections):
         """
-        Esegue YOLO sul frame e restituisce sv.Detections filtrato.
+        Filter detections based on class IDs and confidence thresholds.
+        Args:
+            dets (sv.Detections): The detections to filter.
+        Returns:
+            sv.Detections: The filtered detections.
         """
-        # 1. Inferenza YOLO
-        results = self.model.predict(
-            frame, 
-            imgsz=self.INFERENCE_SIZE, 
-            conf=0.15, # Teniamo basso qui, filtriamo dopo
-            device=self.device,
-            verbose=False # Silenzia l'output nella console
-        )[0] # Prendi il primo risultato (singolo frame)
-
-        # 2. Conversione in Supervision
-        detections = sv.Detections.from_ultralytics(results)
-
-        # 3. Filtro manuale Classi e Confidenza
-        if len(detections) == 0:
+        if dets is None or len(dets) == 0:
             return sv.Detections.empty()
 
-        # Filtra via classi escluse (es. arbitri)
-        detections = detections[~np.isin(detections.class_id, self.EXCLUDED_CLASS_IDS)]
+        keep = []
+        for i, (cid, conf) in enumerate(zip(dets.class_id, dets.confidence)):
+            cid = int(cid)
+            if cid in self.EXCLUDED_CLASS_IDS:
+                continue
+            if cid not in self.ALLOWED_CLASS_IDS:
+                continue
+            thr = self.CLASS_THRESHOLDS.get(cid, self.CLASS_THRESHOLDS["default"])
+            if float(conf) < thr:
+                continue
+            keep.append(i)
 
-        # Filtra classi permesse e applica soglie custom
-        filter_mask = []
-        for class_id, confidence in zip(detections.class_id, detections.confidence):
-            if class_id == self.CLASS_ID_BALL and confidence >= self.CLASS_THRESHOLDS.get(self.CLASS_ID_BALL, 0.25):
-                filter_mask.append(True)
-            elif class_id == self.CLASS_ID_PLAYER and confidence >= self.CLASS_THRESHOLDS.get(self.CLASS_ID_PLAYER, 0.50):
-                filter_mask.append(True)
-            else:
-                filter_mask.append(False)
+        if not keep:
+            return sv.Detections.empty()
+        return dets[np.array(keep)]
+    
+    def getDetections(self, frame, read_from_stub=False, stub_path=None) -> sv.Detections:
+        """
+        Get filtered detections for a given frame using the RFDETR model.
+        Args:
+            frame (numpy.ndarray): The input image frame.
+            read_from_stub (bool, optional): Indicates whether to read detections from a stub file. Defaults to False.
+            stub_path (str, optional): The file path for the stub file. Defaults to None.
+        Returns:
+            sv.Detections: The filtered detections in the frame.
+        """
+
+        if not self.using_yolo: 
+            with torch.no_grad():
+                dets = self.model.predict(frame, threshold=0.10, imgsz=self.INFERENCE_SIZE)
+                
+            dets = dets.with_nms(threshold=self.NMS_THRESHOLD)
+            dets = self.filter_detections(dets)
+        else:
+            results = self.model.predict(
+                frame, 
+                imgsz=self.INFERENCE_SIZE, 
+                conf=0.10, # Teniamo basso qui, filtriamo dopo
+                #iou=self.NMS_THRESHOLD,
+                device=self.device,
+                verbose=False # Silenzia l'output nella console
+            )[0] # Prendi il primo risultato (singolo frame)  
+            
+            # 2. Conversione in Supervision
+            detections = sv.Detections.from_ultralytics(results) 
+            dets = self.filter_detections(detections)
+            
         
-        return detections[np.array(filter_mask)]
+        return dets
 
     def getPlayersPosition(self, frame, dets, read_from_stub=False, stub_path=None) -> list[Player]:
         """
@@ -111,9 +148,9 @@ class PlayerBallDetector:
         """
         
 
-        players = dets[dets.class_id == 4] if len(dets) else sv.Detections.empty()
+        players = dets[dets.class_id == self.CLASS_ID_PLAYER] if len(dets) else sv.Detections.empty()
         player_list: list[Player] = [
-            Player(xyxy=box.copy(), conf=float(conf), class_id=4, track_id=None) for box, conf in zip(players.xyxy, players.confidence)
+            Player(xyxy=box.copy(), conf=float(conf), class_id=self.CLASS_ID_PLAYER, track_id=None) for box, conf in zip(players.xyxy, players.confidence)
         ]
         
         return player_list
@@ -129,10 +166,10 @@ class PlayerBallDetector:
             list[Ball]: A list of detected ball positions in the frame.
         """
 
-        balls = dets[dets.class_id == 1] if len(dets) else sv.Detections.empty() 
+        balls = dets[dets.class_id == self.CLASS_ID_BALL] if len(dets) else sv.Detections.empty() 
         
         ball_list: list[Ball] = [
-            Ball(xyxy=box.copy(), conf=float(conf), class_id=1) for box, conf in zip(balls.xyxy, balls.confidence)
+            Ball(xyxy=box.copy(), conf=float(conf), class_id=self.CLASS_ID_BALL) for box, conf in zip(balls.xyxy, balls.confidence)
         ]
         
         return ball_list
