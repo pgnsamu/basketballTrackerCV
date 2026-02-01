@@ -1,48 +1,50 @@
-"""
-A module for reading and writing video files.
-
-This module provides utility functions to load video frames into memory and save
-processed frames back to video files, with support for common video formats.
-"""
-
 import cv2
 import os
 
 def read_video(video_path):
     """
-    Read all frames from a video file into memory.
-
-    Args:
-        video_path (str): Path to the input video file.
-
+    Read all frames from a video file into memory and return FPS.
+    
     Returns:
-        list: List of video frames as numpy arrays.
+        tuple: (list of frames, fps of the video)
     """
     cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error opening video file: {video_path}")
+        return [], 0
+
+    fps = cap.get(cv2.CAP_PROP_FPS) # Leggiamo gli FPS originali
     frames = []
+    
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         frames.append(frame)
-    return frames
+    
+    cap.release()
+    return frames, fps
 
-def save_video(ouput_video_frames,output_video_path):
+def save_video(output_video_frames, output_video_path, fps=24):
     """
-    Save a sequence of frames as a video file.
-
-    Creates necessary directories if they don't exist and writes frames using XVID codec.
-
-    Args:
-        ouput_video_frames (list): List of frames to save.
-        output_video_path (str): Path where the video should be saved.
+    Save a sequence of frames as a video file using the correct FPS.
     """
+    if not output_video_frames:
+        print("No frames to save.")
+        return
+
     # If folder doesn't exist, create it
     if not os.path.exists(os.path.dirname(output_video_path)):
         os.makedirs(os.path.dirname(output_video_path))
 
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(output_video_path, fourcc, 24, (ouput_video_frames[0].shape[1], ouput_video_frames[0].shape[0]))
-    for frame in ouput_video_frames:
+    # Usa 'mp4v' che è più compatibile di XVID per i browser/player moderni
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
+    height, width = output_video_frames[0].shape[:2]
+    
+    out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+    
+    for frame in output_video_frames:
         out.write(frame)
+    
     out.release()
+    print(f"Video saved at {output_video_path} with {fps} FPS")

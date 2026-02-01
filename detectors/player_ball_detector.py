@@ -72,7 +72,7 @@ class PlayerBallDetector:
         # Detection filtering
         self.ALLOWED_CLASS_IDS = {self.CLASS_ID_BALL, self.CLASS_ID_PLAYER}
         self.EXCLUDED_CLASS_IDS = {9}    # 9=referee can be deleted
-        self.CLASS_THRESHOLDS = {self.CLASS_ID_BALL: 0.25, self.CLASS_ID_PLAYER: 0.70, "default": 0.30}
+        self.CLASS_THRESHOLDS = {self.CLASS_ID_BALL: 0.25, self.CLASS_ID_PLAYER: 0.30, "default": 0.30}
         
         
     def filter_detections(self, dets: sv.Detections):
@@ -177,32 +177,32 @@ class PlayerBallDetector:
     def getBallPlayersPositions(self, frames: list[np.ndarray], read_from_stub=False, stub_path=None) -> tuple[list[list[Player]], list[list[Ball]]]:
         """
         Detect players positions in the full video
-        Args:
-            frames (list[np.ndarray]): The frames of the video.
-            read_from_stub (bool, optional): Indicates whether to read detections from a stub file. Defaults to False.
-            stub_path (str, optional): The file path for the stub file. Defaults to None. (should refer to players)
-        
-        Returns:
-            list[list[Ball]]: A list of detected ball positions in the frame.
         """
         
-        players_positions = read_stub(read_from_stub,stub_path)
-        ball_positions = read_stub(read_from_stub,stub_path.replace('players','balls'))
+        # --- BLOCCO LETTURA STUB ---
+        players_positions = read_stub(read_from_stub, stub_path)
+        ball_positions = read_stub(read_from_stub, stub_path.replace('players', 'balls') if stub_path else None)
+        
         if players_positions is not None and len(players_positions) == len(frames):
             if ball_positions is not None and len(ball_positions) == len(frames):
                 return (players_positions, ball_positions)
-        
+        # ---------------------------
+
         players_positions = []
         ball_positions = []
         
         poss_candidate = None
         poss_streak = 0
-        current_possessor = None
         
         last_ball = None
         last_keep = self.BALL_KEEP_FRAMES
         
-        for frame in frames:
+        print(f"Processing {len(frames)} frames...")
+
+        for i, frame in enumerate(frames):
+            # Feedback progresso ogni 50 frame
+            if i % 50 == 0: print(f"Frame {i}/{len(frames)}")
+
             dets = self.getDetections(frame)
             
             players = self.getPlayersPosition(frame, dets)
@@ -211,38 +211,40 @@ class PlayerBallDetector:
                 tracked_dets = self.TRACKER.update_with_detections(players_to_detections(players))
                 tracked_players: list[Player] = detections_to_players(tracked_dets)
             else:
-                tracked_players = players
-                
+                tracked_players = [] # Se vuoto, lista vuota
 
             balls = self.getBallposition(frame, dets)
             
-
-            
             smoothed_ball, last_keep, ball_object = self.pick_ball_and_smooth(balls, last_ball, last_keep)
+            if ball_object: last_ball = ball_object # Aggiorna last_ball solo se trovato
+
+            # --- LOGICA POSSESSO CORRETTA ---
+            candidate_id = self.find_possessor(tracked_players, smoothed_ball)
             
-            candidate = self.find_possessor(tracked_players, smoothed_ball)
-            if candidate == poss_candidate:
+            if candidate_id == poss_candidate:
                 poss_streak += 1
             else:
-                poss_candidate = candidate
+                poss_candidate = candidate_id
                 poss_streak = 1
 
-        # TODO: this seems like to not working
             if poss_candidate is not None and poss_streak >= self.STABLE_FRAMES:
-                tracked_players[int(poss_candidate)].class_id = 99  # Mark possessor with special class_id 
-            
+                # CERCA IL GIOCATORE CON QUEL TRACK_ID NELLA LISTA
+                for p in tracked_players:
+                    if p.track_id == poss_candidate:
+                        # Modifichiamo l'attributo class_id dell'oggetto Player esistente
+                        # Nota: dataclass frozen=False serve qui!
+                        # Creiamo una copia o modifichiamo (se mutable)
+                        # Poiché Player è definito altrove, assumiamo sia modificabile o lo ricreiamo
+                        object.__setattr__(p, 'class_id', 99) # Hack se frozen, altrimenti p.class_id = 99
+                        break
+            # --------------------------------
 
-            if tracked_players is not None:
-                players_positions.append(tracked_players)
-            else:
-                players_positions.append([])
-            if ball_object is not None:
-                ball_positions.append(ball_object)
-            else:
-                ball_positions.append(None)
+            players_positions.append(tracked_players)
+            ball_positions.append(ball_object) # Salviamo l'oggetto Ball o None
 
-        save_stub(stub_path,players_positions)
-        save_stub(stub_path.replace('players','balls'),ball_positions)
+        save_stub(stub_path, players_positions)
+        if stub_path:
+            save_stub(stub_path.replace('players', 'balls'), ball_positions)
         
         return (players_positions, ball_positions)
     

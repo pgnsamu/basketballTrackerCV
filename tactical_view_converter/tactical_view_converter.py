@@ -1,211 +1,146 @@
-import os
-import sys
-import pathlib
-import numpy as np
 import cv2
+import numpy as np
 from copy import deepcopy
 from homography.homography import Homography
-from utils import Player
-
-folder_path = pathlib.Path(__file__).parent.resolve()
-sys.path.append(os.path.join(folder_path,"../"))
-from utils import measure_distance, check_side
 
 class TacticalViewConverter:
     def __init__(self, court_image_path):
         self.court_image_path = court_image_path
+        self.court_img = cv2.imread(court_image_path)
+        
         self.width = 598
-        self.height= 321
+        self.height = 321
+        self.actual_width_in_meters = 28
+        self.actual_height_in_meters = 15 
 
-        self.actual_width_in_meters=28
-        self.actual_height_in_meters=15 
-
+        # Keypoints Standard (FIBA/NBA court model)
         self.key_points = [
-            # left edge
-            (0,0),
-            (0,int((0.91/self.actual_height_in_meters)*self.height)),
-            (0,int((5.18/self.actual_height_in_meters)*self.height)),
-            (0,int((10/self.actual_height_in_meters)*self.height)),
-            (0,int((14.1/self.actual_height_in_meters)*self.height)),
-            (0,int(self.height)),
-
-            # Middle line
-            (int(self.width/2),self.height),
-            (int(self.width/2),0),
-            
-            # Left Free throw line
-            (int((5.79/self.actual_width_in_meters)*self.width),int((5.18/self.actual_height_in_meters)*self.height)),
-            (int((5.79/self.actual_width_in_meters)*self.width),int((10/self.actual_height_in_meters)*self.height)),
-
-            # right edge
-            (self.width,int(self.height)),
-            (self.width,int((14.1/self.actual_height_in_meters)*self.height)),
-            (self.width,int((10/self.actual_height_in_meters)*self.height)),
-            (self.width,int((5.18/self.actual_height_in_meters)*self.height)),
-            (self.width,int((0.91/self.actual_height_in_meters)*self.height)),
-            (self.width,0),
-
-            # Right Free throw line
-            (int(((self.actual_width_in_meters-5.79)/self.actual_width_in_meters)*self.width),int((5.18/self.actual_height_in_meters)*self.height)),
-            (int(((self.actual_width_in_meters-5.79)/self.actual_width_in_meters)*self.width),int((10/self.actual_height_in_meters)*self.height)),
+            (0,0), (0, int((0.91/15)*321)), (0, int((5.18/15)*321)), (0, int((10/15)*321)), (0, int((14.1/15)*321)), (0, 321), # 0-5
+            (int(598/2), 321), (int(598/2), 0), # 6-7
+            (int((5.79/28)*598), int((5.18/15)*321)), (int((5.79/28)*598), int((10/15)*321)), # 8-9
+            (598, 321), (598, int((14.1/15)*321)), (598, int((10/15)*321)), (598, int((5.18/15)*321)), (598, int((0.91/15)*321)), (598, 0), # 10-15
+            (int(((28-5.79)/28)*598), int((5.18/15)*321)), (int(((28-5.79)/28)*598), int((10/15)*321)) # 16-17
         ]
-           
+        
+        self.current_side = "left" 
+        self.frame_width = 0 
+
     def getKeypointsForOpencv(self) -> np.ndarray:
-        """
-        Returns the tactical view keypoints as a numpy array suitable for OpenCV functions.
+        return np.array(self.key_points, dtype=np.float32)
+
+    def determine_court_side(self, keypoints, frame_width):
+        """Determina il lato del campo basandosi sulla linea centrale"""
+        if frame_width == 0: return self.current_side
         
-        Returns:
-            np.ndarray: An array of shape (18, 2) containing the tactical view keypoints.
-        """
-        return np.array(self.key_points, dtype=np.float32)  # (18,2)
+        mid_line_indices = [6, 7]
+        detected_mids = [kp for i, kp in enumerate(keypoints) if i in mid_line_indices and kp[0] > 0]
 
-    def validate_keypoints(self, keypoints_list: list[np.ndarray]) -> list[np.ndarray]:
-        """
-        Args:
-            keypoints_list: list of np.ndarray, each of shape (18,2), dtype float32
-                            (0,0) means not detected
-        Returns:
-            list[np.ndarray]: validated keypoints, same structure
-        """
-        keypoints_list = deepcopy(keypoints_list)
-        tactical_pts = np.array(self.key_points, dtype=np.float32)  # (18,2)
+        if not detected_mids: return self.current_side 
 
-        for frame_idx, frame_kps in enumerate(keypoints_list):
-
-            if frame_kps is None:
-                continue
-
-            # sicurezza
-            frame_kps = np.asarray(frame_kps, dtype=np.float32)
-
-            # indici dei keypoint rilevati
-            detected_points = [
-                point for point, keypoint_coordinates in enumerate(frame_kps)
-                if keypoint_coordinates[0] > 0 and keypoint_coordinates[1] > 0
-            ]
-
-            # servono almeno 3 punti
-            if len(detected_points) < 3:
-                continue
-
-            invalid_keypoints = []
-
-            for p0 in detected_points:
-
-                if p0 in invalid_keypoints:
-                    continue
-
-                if frame_kps[p0][0] == 0 and frame_kps[p0][1] == 0:
-                    continue
-
-                other_indices = [
-                    idx for idx in detected_points
-                    if idx != p0 and idx not in invalid_keypoints
-                ]
-
-                if len(other_indices) < 2:
-                    continue
-
-                p1, p2 = other_indices[0], other_indices[1]
-
-                # distanze nel frame
-                distance_p0_p1 = measure_distance(frame_kps[p0], frame_kps[p1])
-                distance_p0_p2 = measure_distance(frame_kps[p0], frame_kps[p2])
-                if distance_p0_p2 == 0:
-                    continue
-
-                # distanze nella vista tattica
-                distance_p0_p1_tactic = measure_distance(tactical_pts[p0], tactical_pts[p1])
-                distance_p0_p2_tactic = measure_distance(tactical_pts[p0], tactical_pts[p2])
-
-                if distance_p0_p2_tactic == 0:
-                    continue
-
-                prop_detected = distance_p0_p1 / distance_p0_p2
-                prop_tactical = distance_p0_p1_tactic / distance_p0_p2_tactic
-                
-                error = abs(prop_detected - prop_tactical) / abs(prop_tactical)
-
-                if error > 0.8:  # 80% di errore
-                    frame_kps[p0] = (0.0, 0.0)
-                    invalid_keypoints.append(p0)
-                
-                if (6 in detected_points or 7 in detected_points) and p0 != 6 and p0 !=7:
-                    # TODO: understand why at frame 41 and 42 there is 17 point drawn but not detected
-                    side_result = check_side(frame_kps[p0], frame_kps[7 if 7 in detected_points else 6], p0, frame_idx)
-                    if side_result == 0:
-                        frame_kps[p0] = (0.0, 0.0)
-                        invalid_keypoints.append(p0)
-                
-            keypoints_list[frame_idx] = frame_kps
-
-        return keypoints_list            
-    
-    def transform_players_to_tactical_view(self, keypoints_list, players: list[list[Player]]) -> list[dict[int, list[float, float]]]:
-        """
-        Transform player positions from video frame coordinates to tactical view coordinates.
-        Args:
-            keypoints_list (list): List of detected court keypoints for each frame.
-            players (list): List of lists containing detected player objects for each frame.        
-        Returns:
-            list: List of dictionaries where each dictionary maps player IDs to their (x, y) positions
-                in the tactical view coordinate system. The list index corresponds to the frame number.
-        """
-        tactical_player_positions = []
+        avg_x = np.mean([kp[0] for kp in detected_mids])
         
-        for frame_idx, _ in enumerate(keypoints_list):
-            frame_keypoints = keypoints_list[frame_idx]
-            players_in_frame = players[frame_idx]
-            # Initialize empty dictionary for this frame
-            tactical_positions = {}
+        if avg_x > frame_width * 0.6: return "left"
+        elif avg_x < frame_width * 0.4: return "right"
+        
+        return self.current_side
 
-            if frame_keypoints is None or len(frame_keypoints) == 0:
-                tactical_player_positions.append(tactical_positions)
+    def correct_keypoint_ids(self, keypoints, side):
+        """Scambia ID se rilevato lato errato (Simmetria)"""
+        corrected_kps = deepcopy(keypoints)
+        
+        left_to_right = { 0: 15, 1: 14, 2: 13, 3: 12, 4: 11, 5: 10, 8: 17, 9: 16 }
+        right_to_left = {v: k for k, v in left_to_right.items()}
+
+        detected_indices = [i for i, kp in enumerate(keypoints) if kp[0] > 0]
+        
+        if side == "right":
+            left_count = sum(1 for i in detected_indices if i in left_to_right)
+            if left_count > 2:
+                new_kps = np.zeros_like(corrected_kps)
+                for i, kp in enumerate(corrected_kps):
+                    if i in left_to_right and kp[0] > 0: new_kps[left_to_right[i]] = kp
+                    elif i in [6, 7]: new_kps[i] = kp
+                return new_kps
+
+        elif side == "left":
+            right_count = sum(1 for i in detected_indices if i in right_to_left)
+            if right_count > 2:
+                new_kps = np.zeros_like(corrected_kps)
+                for i, kp in enumerate(corrected_kps):
+                    if i in right_to_left and kp[0] > 0: new_kps[right_to_left[i]] = kp
+                    elif i in [6, 7]: new_kps[i] = kp
+                return new_kps
+
+        return corrected_kps
+
+    def validate_keypoints(self, keypoints_list):
+        return keypoints_list
+
+    def transform_players_to_tactical_view(self, keypoints_list, players_list, ball_list=None):
+        """
+        Trasforma Giocatori E Palla nella vista tattica.
+        Returns:
+            tuple: (tactical_players_list, tactical_ball_list)
+        """
+        tactical_positions_list = []
+        tactical_ball_list = []
+        
+        frame_w = 1280 
+
+        for i, (frame_kps, frame_players) in enumerate(zip(keypoints_list, players_list)):
+            frame_ball = ball_list[i] if ball_list and i < len(ball_list) else None
+            
+            # Default empty outputs
+            frame_tactical_data = {}
+            frame_tactical_ball = None
+
+            if frame_kps is None: 
+                tactical_positions_list.append(frame_tactical_data)
+                tactical_ball_list.append(frame_tactical_ball)
                 continue
+
+            # 1. Lato e Correzione
+            current_side = self.determine_court_side(frame_kps, frame_w)
+            self.current_side = current_side
+            corrected_kps = self.correct_keypoint_ids(frame_kps, current_side)
             
-            # Get detected keypoints for this frame
-            detected_keypoints = frame_keypoints
-            
-            # Filter out undetected keypoints (those with coordinates (0,0))
-            valid_indices = [i for i, kp in enumerate(detected_keypoints) if kp[0] > 0 and kp[1] > 0]
-            
-            # Need at least 4 points for a reliable homography
+            # 2. Omografia
+            valid_indices = [idx for idx, kp in enumerate(corrected_kps) if kp[0] > 0]
             if len(valid_indices) < 4:
-                tactical_player_positions.append(tactical_positions)
+                tactical_positions_list.append(frame_tactical_data)
+                tactical_ball_list.append(frame_tactical_ball)
                 continue
-            
-            # Create source and target point arrays for homography
-            source_points = np.array([detected_keypoints[i] for i in valid_indices], dtype=np.float32)
-            target_points = np.array([self.key_points[i] for i in valid_indices], dtype=np.float32)
+                
+            src_pts = np.array([corrected_kps[idx] for idx in valid_indices], dtype=np.float32)
+            dst_pts = np.array([self.key_points[idx] for idx in valid_indices], dtype=np.float32)
             
             try:
-                # print("Creating homography for frame:", frame_idx, "with valid keypoints:", valid_indices)
-                # Create homography transformer
-                homography = Homography(source_points, target_points)
+                homography = Homography(src_pts, dst_pts)
                 
-                for player in players_in_frame:
-                    # TODO: check if everytime the player has track_id
-                    if player.track_id is None:
-                        continue
-                    player_id = int(player.track_id)
-                    bbox = player.xyxy
-                    # Use bottom center of bounding box as player position
-                    player_position = np.array([player.foot])
-                    # Transform to tactical view coordinates
-                    tactical_position = homography.transform_points(player_position.reshape(1, 2), inverse=False)
-                    # If tactical position is not in the tactical view, skip
-                    if tactical_position[0][0] < 0 or tactical_position[0][0] > self.width or tactical_position[0][1] < 0 or tactical_position[0][1] > self.height:
-                        #print("|||||||||||||||||||||||") # TODO: errore probabilmente qui 
-                        continue
-                    tactical_positions[player_id] = tactical_position[0].tolist()
+                # --- TRASFORMAZIONE GIOCATORI ---
+                for player in frame_players:
+                    if player.track_id is None: continue
+                    foot_point = np.array([player.foot], dtype=np.float32).reshape(1, 1, 2)
+                    transformed = cv2.perspectiveTransform(foot_point, homography.homography_matrix)
+                    tx, ty = transformed[0][0]
                     
-                    
-            except (ValueError, cv2.error) as e:
-                # If homography fails, continue with empty dictionary
-                pass
-            
-            tactical_player_positions.append(tactical_positions)
-        
-        return tactical_player_positions
+                    if 0 <= tx <= self.width and 0 <= ty <= self.height:
+                        frame_tactical_data[player.track_id] = [tx, ty]
+                
+                # --- TRASFORMAZIONE PALLA ---
+                if frame_ball is not None:
+                    # Usiamo il centro della palla o il piede? Per la palla in aria, meglio il centro proiettato
+                    # Ma bbox_utils.get_foot_position va bene anche per la palla (base del box)
+                    ball_pt = np.array([frame_ball.foot], dtype=np.float32).reshape(1, 1, 2)
+                    transformed_ball = cv2.perspectiveTransform(ball_pt, homography.homography_matrix)
+                    bx, by = transformed_ball[0][0]
+                    if 0 <= bx <= self.width and 0 <= by <= self.height:
+                        frame_tactical_ball = [bx, by]
 
-    
+            except Exception:
+                pass
+
+            tactical_positions_list.append(frame_tactical_data)
+            tactical_ball_list.append(frame_tactical_ball)
+
+        return tactical_positions_list, tactical_ball_list
