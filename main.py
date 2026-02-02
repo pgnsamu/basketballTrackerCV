@@ -21,7 +21,7 @@ def main():
     video_frames = read_video('input_video/video_1.mp4')
 
     ## Initialize Keypoint Detector
-    court_keypoint_detector = CourtKeypointDetector('models/keycourt.pt')
+    court_keypoint_detector = CourtKeypointDetector('models/BEST2.pt')
     
     ## Run KeyPoint Extractor
     court_keypoints_per_frame = court_keypoint_detector.get_court_keypoints(video_frames,

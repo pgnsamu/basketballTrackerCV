@@ -52,22 +52,28 @@ class Player(DetectedObject):
         h, w = frame_bgr.shape[:2]
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w - 1, x2), min(h - 1, y2)
-        if x2 <= x1 or y2 <= y1:
-            return (0, 200, 255)
+        
+        # Validazione anti-crash: se il box è troppo piccolo o nullo
+        if x2 <= x1 + 2 or y2 <= y1 + 2: 
+            return (0, 0, 0) # Ritorna nero se invalido
 
         crop = frame_bgr[y1:y2, x1:x2]
         if crop.size == 0:
-            return (0, 200, 255)
+            return (0, 0, 0)
 
-        crop = crop[: max(1, crop.shape[0] // 2), :]
-        crop = cv2.resize(crop, (32, 32), interpolation=cv2.INTER_AREA)
+        # Sampling più aggressivo per velocità (solo centro maglia)
+        crop = crop[: max(1, int(crop.shape[0] * 0.6)), :] # Prendiamo il 60% superiore (torso)
+        crop = cv2.resize(crop, (16, 16), interpolation=cv2.INTER_NEAREST)
         pixels = crop.reshape(-1, 3).astype(np.float32)
 
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        _, labels, centers = cv2.kmeans(pixels, 2, None, criteria, 3, cv2.KMEANS_PP_CENTERS)
-        counts = np.bincount(labels.flatten(), minlength=2)
-        bgr = centers[int(np.argmax(counts))].astype(int)
-        return (int(bgr[0]), int(bgr[1]), int(bgr[2]))
+        try:
+            _, labels, centers = cv2.kmeans(pixels, 2, None, criteria, 3, cv2.KMEANS_PP_CENTERS)
+            counts = np.bincount(labels.flatten(), minlength=2)
+            bgr = centers[int(np.argmax(counts))].astype(int)
+            return (int(bgr[0]), int(bgr[1]), int(bgr[2]))
+        except Exception:
+            return (0,0,0) # Fallback
     
 
 def detections_to_players(dets: sv.Detections) -> list[Player]:

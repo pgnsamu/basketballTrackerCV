@@ -72,7 +72,7 @@ class PlayerBallDetector:
         # Detection filtering
         self.ALLOWED_CLASS_IDS = {self.CLASS_ID_BALL, self.CLASS_ID_PLAYER}
         self.EXCLUDED_CLASS_IDS = {9}    # 9=referee can be deleted
-        self.CLASS_THRESHOLDS = {self.CLASS_ID_BALL: 0.25, self.CLASS_ID_PLAYER: 0.70, "default": 0.30}
+        self.CLASS_THRESHOLDS = {self.CLASS_ID_BALL: 0.25, self.CLASS_ID_PLAYER: 0.30, "default": 0.30}
         
         
     def filter_detections(self, dets: sv.Detections):

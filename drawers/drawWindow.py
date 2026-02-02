@@ -7,7 +7,6 @@ class DrawWindow:
     
     def __init__(self, window_name: str):
         self.window_name = window_name
-        cv2.namedWindow(self.window_name)
         self.point_drawer = PointDrawer(point_color="#FF0000", point_radius=7)
         self.picture_in_picture_section = None
         self.other_point = None
@@ -123,16 +122,16 @@ class DrawWindow:
         cv2.ellipse(frame, (cx, foot_y), (ax1, ax2), 0, 0, 360, color, 3, cv2.LINE_AA)
 
         if is_possessor:
-            cv2.ellipse(frame, (cx, cy), (ax1 + 8, ax2 + 6), 0, 0, 360, (0, 255, 255), 3, cv2.LINE_AA)
+            cv2.ellipse(frame, (cx, foot_y), (ax1 + 10, ax2 + 8), 0, 0, 360, (0, 255, 255), 4, cv2.LINE_AA)
 
         label = str(number)
-        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
         lx = cx - tw // 2
         ly = max(th + 10, y1 - 10)
         
         cv2.rectangle(frame, (lx - 5, ly - th - 5), (lx + tw + 5, ly + 5), (0,0,0), -1)
-        cv2.rectangle(frame, (lx - 6, ly - th - 6), (lx + tw + 6, ly + 6), color, 1)
-        cv2.putText(frame, label, (lx, ly), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv2.LINE_AA)
+        cv2.rectangle(frame, (lx - 6, ly - th - 6), (lx + tw + 6, ly + 5), color, 1)
+        cv2.putText(frame, label, (lx, ly), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
     
     
     def drawAllFrames(
