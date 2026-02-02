@@ -229,7 +229,10 @@ class PlayerBallDetector:
 
         # TODO: this seems like to not working
             if poss_candidate is not None and poss_streak >= self.STABLE_FRAMES:
-                tracked_players[int(poss_candidate)].class_id = 99  # Mark possessor with special class_id 
+                for player in tracked_players:
+                    if player.track_id == poss_candidate:
+                        player.class_id = 99  # Mark possessor with special class_id
+                        break
             
 
             if tracked_players is not None:
