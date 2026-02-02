@@ -63,6 +63,10 @@ class CourtKeypointDetector:
                 frame += 1
                 # tensor: (n_instances, 18, 2)
                 xy = detection.keypoints.xy
+                if xy is None or xy.numel() == 0 or xy.shape[1] == 0:
+                    # qui sei nel caso: tensor([], size=(1,0,2)) oppure comunque vuoto
+                    court_keypoints.append(None)
+                    continue
                 
                 
                 
@@ -94,21 +98,32 @@ class CourtKeypointDetector:
                         
                         xy_prev = cache_keypoints.keypoints.xy
                         point2 = xy_prev[0][right_ids[index]]
-                        
-                        distance1 = np.linalg.norm(point - point2)
+                        # OLD (Causing Error)
+                        # distance1 = np.linalg.norm(point - point2)
+
+                        # NEW (Correct)
+                        distance1 = torch.linalg.norm(point - point2).item()
                         if distance1 < 15:  
-                            print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
-                        
+                            #print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
+                            #point2
+                            #continue
+                            pass
                         # right new left cached    
                         point = xy[0][right_ids[index]]
                         
                         xy_prev = cache_keypoints.keypoints.xy
                         point2 = xy_prev[0][left_ids[index]]
                         
-                        distance = np.linalg.norm(point - point2)
-                        if distance < 15: 
-                            print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
+                                                # OLD (Causing Error)
+                        # distance1 = np.linalg.norm(point - point2)
 
+                        # NEW (Correct)
+                        distance = torch.linalg.norm(point - point2).item()            
+                        if distance < 15: 
+                            #print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
+                            #point1
+                            #continue
+                            pass
 
 
                 if xy is None or xy.shape[0] == 0:

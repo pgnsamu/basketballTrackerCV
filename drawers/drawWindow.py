@@ -206,8 +206,8 @@ class DrawWindow:
                         DrawWindow.draw_player_ellipse(frameSpec, player, jersery_colors[player.track_id], is_possessor=is_possessor)
                     '''
                 for k, tactical_player_coord in tactical_players_per_frame[frame_idx].items():
-                    frameTactical = self.point_drawer.drawSpecifiedPoint(tactical_player_coord[0], tactical_player_coord[1], frameTactical, color="#FF00B3")
-                
+                    frameTactical = self.point_drawer.drawSpecifiedPoint(tactical_player_coord[0], tactical_player_coord[1], frameTactical, color=color)
+
                 if ball_per_frame is not None and ball_per_frame[frame_idx] is not None:
                     ball = ball_per_frame[frame_idx]
                     frameSpec = self.drawBoxOnFrame(frameSpec, ball.xyxy, color="#0000FF", thickness=2)
