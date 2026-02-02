@@ -3,6 +3,8 @@ import numpy as np
 from .drawPoint import PointDrawer
 from utils import Player, Ball, bgr_to_hex
 
+
+
 class DrawWindow:
     
     def __init__(self, window_name: str):
@@ -159,7 +161,6 @@ class DrawWindow:
         """
         # container for video output
         frames_out = []
-        
         # draw small first
         frameImg = cv2.imread("images/basketball_court.png")
         frameImg = self.drawPointsOnFrame(frameImg, point_per_small)
@@ -192,13 +193,13 @@ class DrawWindow:
                     is_possessor = (player.class_id == 99)
                     
                     DrawWindow.draw_player_ellipse(frameSpec, player, color, is_possessor=is_possessor)
-                    
+
                     tactical_data = tactical_players_per_frame[frame_idx]
                         
                     if player.track_id in tactical_data:
                             coord = tactical_data[player.track_id] # Recupera (x, y) specifico per questo player
                             # Disegna il punto sul frame tattico usando lo stesso colore della maglia
-                            frameTactical = self.point_drawer.drawSpecifiedPoint(coord[0], coord[1], frameTactical, color=color)
+                            frameTactical = self.point_drawer.drawSpecifiedPoint(coord[0], coord[1], frameTactical, color=color, label=player.track_id)
                     
                     '''
                     #print("Drawing player box with class_id:", player)

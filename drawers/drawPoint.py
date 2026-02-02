@@ -72,7 +72,7 @@ class PointDrawer:
 
         return annotated
     
-    def drawSpecifiedPoint(self, x: float, y: float, frame, color: str = None):
+    def drawSpecifiedPoint(self, x: float, y: float, frame, color: str = None, label: str = None):
         """
         Draw a specified point on the frame using OpenCV.
 
@@ -105,5 +105,30 @@ class PointDrawer:
             color_bgr,
             -1
         )
+        if label is not None:
+            text = str(label)
+            
+            # --- IMPOSTAZIONI FONT MIGLIORATO ---
+            # DUPLEX è più "pieno" e leggibile del SIMPLEX
+            font_face = cv2.FONT_HERSHEY_DUPLEX 
+            font_scale = 0.5  # Piccolo ma leggibile grazie al font DUPLEX
+            thickness = 1
+            
+            # Calcola dimensioni testo
+            (text_w, text_h), baseline = cv2.getTextSize(text, font_face, font_scale, thickness)
+            
+            # Coordinate per centrare il testo sopra il punto
+            # Offset verticale: raggio + 4 pixel
+            text_x = x_i - (text_w // 2)
+            text_y = y_i - self.point_radius - 4 
 
+            # --- SFONDO AD ALTO CONTRASTO (Opzionale ma consigliato) ---
+            # Disegna un rettangolino nero (o grigio scuro) dietro il numero
+            box_coords_1 = (text_x - 2, text_y - text_h - 2)
+            box_coords_2 = (text_x + text_w + 2, text_y + 2)
+            cv2.rectangle(frame, box_coords_1, box_coords_2, (0, 0, 0), -1)
+            
+            # --- TESTO BIANCO PURO ---
+            # Il bianco su sfondo nero è il massimo contrasto possibile
+            cv2.putText(frame, text, (text_x, text_y), font_face, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
         return frame
