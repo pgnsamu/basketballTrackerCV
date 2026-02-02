@@ -188,10 +188,17 @@ class DrawWindow:
                         self.jersey_colors_cache[player.track_id] = player.get_dominant_jersey_color(frame)
                     
                     color = self.jersey_colors_cache[player.track_id]
+                    #print(color)
                     is_possessor = (player.class_id == 99)
                     
                     DrawWindow.draw_player_ellipse(frameSpec, player, color, is_possessor=is_possessor)
                     
+                    tactical_data = tactical_players_per_frame[frame_idx]
+                        
+                    if player.track_id in tactical_data:
+                            coord = tactical_data[player.track_id] # Recupera (x, y) specifico per questo player
+                            # Disegna il punto sul frame tattico usando lo stesso colore della maglia
+                            frameTactical = self.point_drawer.drawSpecifiedPoint(coord[0], coord[1], frameTactical, color=color)
                     
                     '''
                     #print("Drawing player box with class_id:", player)
@@ -205,8 +212,8 @@ class DrawWindow:
                         #frameSpec = self.drawBoxOnFrame(frameSpec, player.xyxy, color=jersery_colors[player.track_id], thickness=2)
                         DrawWindow.draw_player_ellipse(frameSpec, player, jersery_colors[player.track_id], is_possessor=is_possessor)
                     '''
-                for k, tactical_player_coord in tactical_players_per_frame[frame_idx].items():
-                    frameTactical = self.point_drawer.drawSpecifiedPoint(tactical_player_coord[0], tactical_player_coord[1], frameTactical, color=color)
+                #for k, tactical_player_coord in tactical_players_per_frame[frame_idx].items():
+                #    frameTactical = self.point_drawer.drawSpecifiedPoint(tactical_player_coord[0], tactical_player_coord[1], frameTactical, color=color)
 
                 if ball_per_frame is not None and ball_per_frame[frame_idx] is not None:
                     ball = ball_per_frame[frame_idx]
