@@ -15,7 +15,7 @@ class CourtKeypointDetector:
         self.model = YOLO(model_path)
         self.conf_threshold = conf_threshold
     
-    def get_court_keypoints(self, frames,read_from_stub=False, stub_path=None) -> list[np.ndarray]:
+    def get_court_keypoints(self, frames,read_from_stub=False, stub_path=None, label=None) -> list[np.ndarray]:
         """
         Detect court keypoints for a batch of frames using the YOLO model. If requested, 
         attempts to read previously detected keypoints from a stub file before running the model.
@@ -26,11 +26,13 @@ class CourtKeypointDetector:
                 instead of running the detection model. Defaults to False.
             stub_path (str, optional): The file path for the stub file. If None, a default path may be used. 
                 Defaults to None.
+            label (str, optional): The label for the video processed. If None, a default path may be used. 
+                Defaults to None.
 
         Returns:
             list: A list of detected keypoints for each input frame.
         """
-        court_keypoints = read_stub(read_from_stub,stub_path)
+        court_keypoints = read_stub(read_from_stub,stub_path, label)
         if court_keypoints is not None:
             if len(court_keypoints) == len(frames):
                 print("-------------------------------------")
@@ -136,7 +138,7 @@ class CourtKeypointDetector:
                 cache_keypoints = detection
                 counter += 1
 
-        save_stub(stub_path,court_keypoints)
+        save_stub(stub_path,court_keypoints, label)
         
         return court_keypoints
     

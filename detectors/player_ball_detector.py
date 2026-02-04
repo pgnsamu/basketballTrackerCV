@@ -174,20 +174,21 @@ class PlayerBallDetector:
         
         return ball_list
     
-    def getBallPlayersPositions(self, frames: list[np.ndarray], read_from_stub=False, stub_path=None) -> tuple[list[list[Player]], list[list[Ball]]]:
+    def getBallPlayersPositions(self, frames: list[np.ndarray], read_from_stub=False, stub_path=None, label=None) -> tuple[list[list[Player]], list[list[Ball]]]:
         """
         Detect players positions in the full video
         Args:
             frames (list[np.ndarray]): The frames of the video.
             read_from_stub (bool, optional): Indicates whether to read detections from a stub file. Defaults to False.
             stub_path (str, optional): The file path for the stub file. Defaults to None. (should refer to players)
-        
+            label (str, optional): The label for the video processed. If None, a default path may be used. 
+                Defaults to None.
         Returns:
             list[list[Ball]]: A list of detected ball positions in the frame.
         """
         
-        players_positions = read_stub(read_from_stub,stub_path)
-        ball_positions = read_stub(read_from_stub,stub_path.replace('players','balls'))
+        players_positions = read_stub(read_from_stub,stub_path,label)
+        ball_positions = read_stub(read_from_stub,stub_path.replace('players','balls'),label)
         if players_positions is not None and len(players_positions) == len(frames):
             if ball_positions is not None and len(ball_positions) == len(frames):
                 return (players_positions, ball_positions)
@@ -202,7 +203,8 @@ class PlayerBallDetector:
         last_ball = None
         last_keep = self.BALL_KEEP_FRAMES
         
-        for frame in frames:
+        for frame_idx, frame in enumerate(frames):
+            print("Processing frame", frame_idx, "of", len(frames))
             dets = self.getDetections(frame)
             
             players = self.getPlayersPosition(frame, dets)
@@ -244,8 +246,8 @@ class PlayerBallDetector:
             else:
                 ball_positions.append(None)
 
-        save_stub(stub_path,players_positions)
-        save_stub(stub_path.replace('players','balls'),ball_positions)
+        save_stub(stub_path,players_positions, label)
+        save_stub(stub_path.replace('players','balls'),ball_positions, label)
         
         return (players_positions, ball_positions)
     

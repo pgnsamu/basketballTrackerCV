@@ -17,8 +17,9 @@ DEBUG = False
 
 def main():
     
+    video_name = "video_1.mp4"  
     # Read Video
-    video_frames = read_video('input_video/video_1.mp4')
+    video_frames = read_video('input_video/'+video_name)
 
     ## Initialize Keypoint Detector
     court_keypoint_detector = CourtKeypointDetector('models/BEST2.pt')
@@ -26,7 +27,8 @@ def main():
     ## Run KeyPoint Extractor
     court_keypoints_per_frame = court_keypoint_detector.get_court_keypoints(video_frames,
                                                                     read_from_stub=True,
-                                                                    stub_path='stubs/court_key_points_stub_copia.pkl'
+                                                                    stub_path='stubs/court_key_points_stub_copia.pkl', 
+                                                                    label=video_name
                                                                     )
     # [1, 18, 2]
     '''
@@ -43,7 +45,8 @@ def main():
     players_positions_per_frame, ball_positions_per_frame = player_ball_detector.getBallPlayersPositions(
         video_frames,
         read_from_stub=True,
-        stub_path='stubs/players_positions_stub.pkl'
+        stub_path='stubs/players_positions_stub.pkl',
+        label=video_name
     )
     '''
     # using old model for comparison

@@ -8,7 +8,7 @@ which helps avoid redundant computations and speeds up development iterations.
 import os 
 import pickle
 
-def save_stub(stub_path,object):
+def save_stub(stub_path,object, label=None):
     """
     Save a Python object to disk at the specified path.
 
@@ -17,7 +17,10 @@ def save_stub(stub_path,object):
     Args:
         stub_path (str): File path where the object should be saved.
         object: Any Python object that can be pickled.
+        label (str, optional): Label to append to the stub path, in this case is used to specify the video name.
     """
+    if label is not None:
+        stub_path = stub_path + "_" + label
     if not os.path.exists(os.path.dirname(stub_path)):
         os.makedirs(os.path.dirname(stub_path))
 
@@ -25,17 +28,20 @@ def save_stub(stub_path,object):
         with open(stub_path,'wb') as f:
             pickle.dump(object,f)
 
-def read_stub(read_from_stub,stub_path):
+def read_stub(read_from_stub,stub_path, label=None):
     """
     Read a previously saved Python object from disk if available.
 
     Args:
         read_from_stub (bool): Whether to attempt reading from disk.
         stub_path (str): File path where the object was saved.
+        label (str, optional): Label to append to the stub path, in this case is used to specify the video name.
 
     Returns:
         object: The loaded Python object if successful, None otherwise.
     """
+    if label is not None:
+        stub_path = stub_path + "_" + label
     if read_from_stub and stub_path is not None and os.path.exists(stub_path):
         with open(stub_path,'rb') as f:
             object = pickle.load(f)
