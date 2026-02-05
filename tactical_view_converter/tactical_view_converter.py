@@ -102,6 +102,67 @@ class TacticalViewConverter:
                 cache_keypoints = []
                 continue
 
+            if frame_idx > 0:
+
+                # TODO: in teoria lo switch dei punti dovrebbe rimanere finche non si rilevano i punti centrali e quelli nuovi vengano messi dall'altra parte della linea
+                # in questo caso si fa fede alla prima detection valida
+                for index, left_index  in enumerate(left_ids):   
+                    # left new right cached
+                    point = frame_kps[left_ids[index]]
+                    
+                    if len(cache_keypoints) > 0:
+                        if cache_keypoints[right_ids[index]][0] > 0 or cache_keypoints[right_ids[index]][1] > 0:
+                            point2 = cache_keypoints[right_ids[index]]
+                        else:
+                            point2 = (0.0, 0.0)
+                            for i in range(2, 11):
+                                if frame_idx - i >= 0 and frame_idx - i < len(multi_cache_keypoints) and len(multi_cache_keypoints[frame_idx - i]) > 0:
+                                    prev_point = multi_cache_keypoints[frame_idx - i][right_ids[index]]
+                                    if prev_point[0] > 0 or prev_point[1] > 0:
+                                        point2 = prev_point
+                                        break
+
+                    distance1 = measure_distance(point, point2)
+                    if distance1 < 70 and distance1 > 0:  
+                        # inverti punti
+                        frame_kps[right_ids[index]] = frame_kps[left_ids[index]]
+                        frame_kps[left_ids[index]] = (0.0, 0.0)
+                        detected_points.remove(left_ids[index])
+                        detected_points.append(right_ids[index])
+
+                        #point2
+                        first_impostor_keypoints.append((frame_idx, (left_ids[index], right_ids[index])))
+                        continue
+
+                    # right new left cached    
+                    point = frame_kps[right_ids[index]]
+                    
+                    if len(cache_keypoints) > 0:
+                        if cache_keypoints[left_ids[index]][0] > 0 or cache_keypoints[left_ids[index]][1] > 0:
+                            point2 = cache_keypoints[left_ids[index]]
+                        else:
+                            point2 = (0.0, 0.0)
+                            for i in range(2, 11):
+                                if frame_idx - i >= 0 and frame_idx - i < len(multi_cache_keypoints) and len(multi_cache_keypoints[frame_idx - i]) > 0:
+                                    prev_point = multi_cache_keypoints[frame_idx - i][left_ids[index]]
+                                    if prev_point[0] > 0 or prev_point[1] > 0:
+                                        point2 = prev_point
+                                        break
+                    
+                    distance = measure_distance(point, point2)            
+                    if distance < 70 and distance > 0: 
+                        # inverti punti
+                        frame_kps[left_ids[index]] = frame_kps[right_ids[index]]
+                        frame_kps[right_ids[index]] = (0.0, 0.0)
+                        detected_points.remove(right_ids[index])
+                        detected_points.append(left_ids[index])
+
+                        #point1
+                        second_impostor_keypoints.append((frame_idx, (right_ids[index], left_ids[index])))
+                        continue
+            
+
+
             invalid_keypoints = []
             # finding invalid points based on the symmetry on the minimap
             for p0 in detected_points:
@@ -143,6 +204,18 @@ class TacticalViewConverter:
                 if error > 0.8:  # 80% di errore
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
+
+                # percentuale di side
+                percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
+                percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
+                if percentage_left == 0.125 and p0 in left_ids:
+                    frame_kps[p0] = (0.0, 0.0)
+                    invalid_keypoints.append(p0)
+                elif percentage_right == 0.125 and p0 in right_ids:
+                    frame_kps[p0] = (0.0, 0.0)
+                    invalid_keypoints.append(p0)
+                    
+
                 
                 if (6 in detected_points or 7 in detected_points) and p0 != 6 and p0 !=7:
                     side_result = check_side(frame_kps[p0], frame_kps[7 if 7 in detected_points else 6], p0, frame_idx)
