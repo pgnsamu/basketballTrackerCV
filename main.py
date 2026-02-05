@@ -17,9 +17,12 @@ DEBUG = False
 
 def main():
     
-    video_name = "video_1.mp4"  
+    video_name = "video3.mp4"  
     # Read Video
     video_frames = read_video('input_video/'+video_name)
+    if video_frames == []:
+        print("Error: Could not read video file.")
+        return
 
     ## Initialize Keypoint Detector
     court_keypoint_detector = CourtKeypointDetector('models/BEST2.pt')
@@ -113,7 +116,7 @@ def main():
     output_video_frames = frame_number_drawer.draw(output_video_frames)
     '''
     # Save video
-    save_video(output_video_frames, 'outputVideo/output_video5validated3.mp4')
+    save_video(output_video_frames, 'outputVideo/output_video5validated3_3.mp4')
 
 if __name__ == '__main__':
     main()

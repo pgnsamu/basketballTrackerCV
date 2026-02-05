@@ -178,6 +178,13 @@ class DrawWindow:
             
             frameTactical = frameImg.copy()
             frameSpec = frame.copy()
+            
+            # Draw frame index
+            width = frame.shape[1]
+            height = frame.shape[0]
+
+            frameSpec = cv2.putText(frameSpec, str(frame_idx), (width - 200, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            
             frameSpec = self.drawPointsOnFrame(frameSpec, points_per_frame[frame_idx])
             
             
