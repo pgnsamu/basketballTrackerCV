@@ -68,7 +68,9 @@ def main():
     
     # Tactical View
     tactical_view_converter = TacticalViewConverter(
-        court_image_path="./images/basketball_court.png"
+        court_image_path="./images/basketball_court.png",
+        video_width=video_frames[0].shape[1],
+        video_height=video_frames[0].shape[0]
     )
 
     court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)

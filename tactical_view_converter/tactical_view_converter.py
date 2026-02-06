@@ -12,10 +12,18 @@ sys.path.append(os.path.join(folder_path,"../"))
 from utils import measure_distance, check_side
 
 class TacticalViewConverter:
-    def __init__(self, court_image_path):
+    def __init__(self, court_image_path, video_width, video_height):
         self.court_image_path = court_image_path
         self.width = 598
         self.height= 321
+        
+
+        self.frame_height = video_height
+        self.frame_width = video_width
+
+        # TODO: calculate this value based on the video resolution maybe a 5%/10% of the width
+        # self.THRESHOLD_DISTANCE = self.frame_width * 0.05 
+        self.THRESHOLD_DISTANCE = 70
 
         self.actual_width_in_meters=28
         self.actual_height_in_meters=15 
@@ -122,7 +130,7 @@ class TacticalViewConverter:
                                     break
                 
                     distance1 = measure_distance(point, point2)
-                    if distance1 < 70 and distance1 > 0:  
+                    if distance1 < self.THRESHOLD_DISTANCE and distance1 > 0:  
                         # inverti punti
                         frame_kps[right_ids[index]] = frame_kps[left_ids[index]]
                         frame_kps[left_ids[index]] = (0.0, 0.0)
@@ -149,7 +157,7 @@ class TacticalViewConverter:
                                     break
 
                     distance = measure_distance(point, point2)            
-                    if distance < 70 and distance > 0: 
+                    if distance < self.THRESHOLD_DISTANCE and distance > 0: 
                         # inverti punti
                         frame_kps[left_ids[index]] = frame_kps[right_ids[index]]
                         frame_kps[right_ids[index]] = (0.0, 0.0)
@@ -227,7 +235,7 @@ class TacticalViewConverter:
                 if p0 in left_ids:
                     p_right = right_ids[left_ids.index(p0)]
                     distance_p0_p_right = measure_distance(frame_kps[p0], frame_kps[p_right])
-                    if distance_p0_p_right < 15 and distance_p0_p_right > 0:
+                    if distance_p0_p_right < self.THRESHOLD_DISTANCE and distance_p0_p_right > 0:
                         # getting percentage of points of each side and then delete the point which has less points
                         percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
                         percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
@@ -241,7 +249,7 @@ class TacticalViewConverter:
                 elif p0 in right_ids:
                     p_left = left_ids[right_ids.index(p0)]
                     distance_p0_p_left = measure_distance(frame_kps[p0], frame_kps[p_left])
-                    if distance_p0_p_left < 15 and distance_p0_p_left > 0:
+                    if distance_p0_p_left < self.THRESHOLD_DISTANCE and distance_p0_p_left > 0:
                         # getting percentage of points of each side and then delete the point which has less points
                         percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
                         percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
