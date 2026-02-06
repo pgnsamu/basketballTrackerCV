@@ -17,7 +17,7 @@ DEBUG = False
 
 def main():
     
-    video_name = "video3.mp4"  
+    video_name = "video_4.mp4"  
     # Read Video
     video_frames = read_video('input_video/'+video_name)
     if video_frames == []:
@@ -99,14 +99,16 @@ def main():
         
     drawWindow = DrawWindow("Output Video")
     tactical_court = cv2.imread("images/basketball_court.png")
-    output_video_frames = drawWindow.drawAllFrames(
-        frames=video_frames,
-        small=tactical_court,
-        point_per_small=tactical_view_converter.getKeypointsForOpencv(),
+    drawWindow.drawAllFrames(
+        frames=video_frames, 
+        small=tactical_court, 
+        point_per_small=tactical_view_converter.getKeypointsForOpencv(), 
+        points_per_frame=court_keypoints_per_frame,
         players_per_frame=players_positions_per_frame,
         tactical_players_per_frame=tactical_players_per_frame,
         ball_per_frame=ball_positions_per_frame,
-        points_per_frame=court_keypoints_per_frame
+        out_path="outputVideo/output_video5validated3_33_2.mp4",
+        fps=30.0
     )
 
     ## Draw KeyPoints
@@ -116,7 +118,7 @@ def main():
     output_video_frames = frame_number_drawer.draw(output_video_frames)
     '''
     # Save video
-    save_video(output_video_frames, 'outputVideo/output_video5validated3_3.mp4')
+    # save_video(output_video_frames, 'outputVideo/output_video5validated3_33.mp4')
 
 if __name__ == '__main__':
     main()

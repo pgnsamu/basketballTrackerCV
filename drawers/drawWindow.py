@@ -144,10 +144,12 @@ class DrawWindow:
             players_per_frame: list[list[Player]] = None,
             tactical_players_per_frame: list[dict[int, list[float, float]]] = None,
             ball_per_frame: list[Ball] = None,
-        ) -> list[np.ndarray]:
+            out_path: str = None,                 # NEW: if set, stream output to file instead of storing in RAM
+            fps: float = 30.0,                    # NEW: used only if out_path is set
+            codec: str = "mp4v",                  # NEW: used only if out_path is set
+        ):
         """
         Draw all frames with points and boxes.
-
         Args:
             frames: list of BGR images (np.ndarray)
             small: BGR image (np.ndarray) for picture-in-picture
@@ -156,25 +158,28 @@ class DrawWindow:
             players_per_frame: list of list of Player  per frame
             tactical_players_per_frame: list of dict of player_id to (x,y) coordinates
             ball_per_frame: objects of Ball per frame
-        Returns:
-            list of annotated frames
+            out_path: frames are written to this video path (constant memory)
+            fps: output video fps
+            codec: fourcc codec (e.g. "mp4v", "avc1")
         """
-        # container for video output
-        frames_out = []
         # draw small first
         frameImg = cv2.imread("images/basketball_court.png")
         frameImg = self.drawPointsOnFrame(frameImg, point_per_small)
         
-        frame = self.composeFrame(frames[0].copy(), frameImg, pos=(10,10), scale=0.3)
-        
-        # TODO: to be removed from here, the logic of tracking players feature in the drawing class is soooooo wrong
-        # playerNumber is the same of track_id so why recalculating it again?
-        
+        frame = self.composeFrame(frames[0].copy(), frameImg, pos=(10,10), scale=0.3)  
+
+        writer = None
+        if out_path is not None:
+            h, w = frames[0].shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*codec)
+            writer = cv2.VideoWriter(out_path, fourcc, fps, (w, h))
+      
         
         for frame_idx, frame in enumerate(frames):
             # taking frame from video and draw points took from yolo model
             
-            if frame_idx % 50 == 0: print(f"Rendering {frame_idx}/{len(frames)}")
+            if frame_idx % 50 == 0: 
+                print(f"Rendering {frame_idx}/{len(frames)}")
             
             frameTactical = frameImg.copy()
             frameSpec = frame.copy()
@@ -229,9 +234,12 @@ class DrawWindow:
                     
             
             # compose with picture-in-picture
-            frame = self.composeFrame(frameSpec, frameTactical, pos=(10,10), scale=0.3)
-            # self.realtimeDisplaying(frame, frame_idx)
-            frames_out.append(frame)
-        return frames_out
-        
+            out_frame = self.composeFrame(frameSpec, frameTactical, pos=(10,10), scale=0.3)
+            # self.realtimeDisplaying(out_frame, frame_idx)
+
+            if writer is not None:
+                writer.write(out_frame)
+
+        if writer is not None:
+            writer.release()
         
