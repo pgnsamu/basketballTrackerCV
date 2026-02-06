@@ -103,7 +103,6 @@ class TacticalViewConverter:
                 continue
 
             if frame_idx > 0:
-
                 # TODO: in teoria lo switch dei punti dovrebbe rimanere finche non si rilevano i punti centrali e quelli nuovi vengano messi dall'altra parte della linea
                 # in questo caso si fa fede alla prima detection valida
                 for index, left_index  in enumerate(left_ids):   
@@ -201,7 +200,7 @@ class TacticalViewConverter:
                 
                 error = abs(prop_detected - prop_tactical) / abs(prop_tactical)
 
-                if error > 0.8:  # 80% di errore
+                if error >= 0.7:  # 70% di errore
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
 
