@@ -110,18 +110,18 @@ class TacticalViewConverter:
                     # left new right cached
                     point = frame_kps[left_ids[index]]
                     
-                    if len(cache_keypoints) > 0:
-                        if cache_keypoints[right_ids[index]][0] > 0 or cache_keypoints[right_ids[index]][1] > 0:
-                            point2 = cache_keypoints[right_ids[index]]
-                        else:
-                            point2 = (0.0, 0.0)
-                            for i in range(2, 11):
-                                if frame_idx - i >= 0 and frame_idx - i < len(multi_cache_keypoints) and len(multi_cache_keypoints[frame_idx - i]) > 0:
-                                    prev_point = multi_cache_keypoints[frame_idx - i][right_ids[index]]
-                                    if prev_point[0] > 0 or prev_point[1] > 0:
-                                        point2 = prev_point
-                                        break
 
+                    if len(cache_keypoints) > 0 and (cache_keypoints[right_ids[index]][0] > 0 or cache_keypoints[right_ids[index]][1] > 0):
+                        point2 = cache_keypoints[right_ids[index]]
+                    else:
+                        point2 = (0.0, 0.0)
+                        for i in range(2, 11):
+                            if frame_idx - i >= 0 and frame_idx - i < len(multi_cache_keypoints) and len(multi_cache_keypoints[frame_idx - i]) > 0:
+                                prev_point = multi_cache_keypoints[frame_idx - i][right_ids[index]]
+                                if prev_point[0] > 0 or prev_point[1] > 0:
+                                    point2 = prev_point
+                                    break
+                
                     distance1 = measure_distance(point, point2)
                     if distance1 < 70 and distance1 > 0:  
                         # inverti punti
@@ -137,18 +137,18 @@ class TacticalViewConverter:
                     # right new left cached    
                     point = frame_kps[right_ids[index]]
                     
-                    if len(cache_keypoints) > 0:
-                        if cache_keypoints[left_ids[index]][0] > 0 or cache_keypoints[left_ids[index]][1] > 0:
-                            point2 = cache_keypoints[left_ids[index]]
-                        else:
-                            point2 = (0.0, 0.0)
-                            for i in range(2, 11):
-                                if frame_idx - i >= 0 and frame_idx - i < len(multi_cache_keypoints) and len(multi_cache_keypoints[frame_idx - i]) > 0:
-                                    prev_point = multi_cache_keypoints[frame_idx - i][left_ids[index]]
-                                    if prev_point[0] > 0 or prev_point[1] > 0:
-                                        point2 = prev_point
-                                        break
-                    
+
+                    if len(cache_keypoints) > 0 and (cache_keypoints[left_ids[index]][0] > 0 or cache_keypoints[left_ids[index]][1] > 0):
+                        point2 = cache_keypoints[left_ids[index]]
+                    else:
+                        point2 = (0.0, 0.0)
+                        for i in range(2, 11):
+                            if frame_idx - i >= 0 and frame_idx - i < len(multi_cache_keypoints) and len(multi_cache_keypoints[frame_idx - i]) > 0:
+                                prev_point = multi_cache_keypoints[frame_idx - i][left_ids[index]]
+                                if prev_point[0] > 0 or prev_point[1] > 0:
+                                    point2 = prev_point
+                                    break
+
                     distance = measure_distance(point, point2)            
                     if distance < 70 and distance > 0: 
                         # inverti punti
