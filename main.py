@@ -74,6 +74,15 @@ def main():
     )
 
     court_keypoints_per_frame = tactical_view_converter.validate_keypoints(court_keypoints_per_frame)
+
+    with open('court_keypoints333_3LAST.txt', 'w') as f:
+        for frame_kpts in court_keypoints_per_frame:
+            if frame_kpts is None:
+                f.write("[]\n")
+                continue
+            detected_indices = [i for i, pt in enumerate(frame_kpts) if pt[0] != 0 or pt[1] != 0]
+            f.write(f"{detected_indices}\n")
+    
     
     tactical_players_per_frame = tactical_view_converter.transform_players_to_tactical_view(court_keypoints_per_frame, players_positions_per_frame)
     
@@ -109,7 +118,7 @@ def main():
         players_per_frame=players_positions_per_frame,
         tactical_players_per_frame=tactical_players_per_frame,
         ball_per_frame=ball_positions_per_frame,
-        out_path="outputVideo/output_video5validated3_33_2.mp4",
+        out_path="outputVideo/output_video5validated3_33_3LAST.mp4",
         fps=30.0
     )
 

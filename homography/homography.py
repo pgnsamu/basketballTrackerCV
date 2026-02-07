@@ -11,7 +11,7 @@ class Homography:
         #print("len of destination points:", len(destination_points))
         self.homography_matrix = None
         # Remove invalid destination points (e.g., [-1, -1])
-        valid_mask = ~((self.destination_points[:, 0] <= 0) & (self.destination_points[:, 1] <= 0))
+        valid_mask = ~((self.source_points[:, 0] <= 0) & (self.source_points[:, 1] <= 0))
         valid_indices = self.destination_points[valid_mask]
         self.source_points = self.source_points[valid_mask]
         if len(valid_indices) >= 4:

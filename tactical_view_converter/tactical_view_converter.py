@@ -6,6 +6,7 @@ import cv2
 from copy import deepcopy
 from homography.homography import Homography
 from utils import Player
+from itertools import combinations
 
 folder_path = pathlib.Path(__file__).parent.resolve()
 sys.path.append(os.path.join(folder_path,"../"))
@@ -80,6 +81,7 @@ class TacticalViewConverter:
 
         left_ids  = [0,  1,  2,  3,  4,  5,  8,  9]
         right_ids = [15, 14, 13, 12, 11, 10, 16, 17]
+        sides ={ 0: left_ids, 1: right_ids }
 
         cache_keypoints = []
         # improvement: when a point disappear for a few frames, and the others dont change too much, then we can assume that the point is still there and interpolate it.
@@ -87,6 +89,7 @@ class TacticalViewConverter:
 
         first_impostor_keypoints = []
         second_impostor_keypoints = []
+        third_impostor_keypoints = []
 
         for frame_idx, frame_kps in enumerate(keypoints_list):
 
@@ -144,7 +147,7 @@ class TacticalViewConverter:
                     # right new left cached    
                     point = frame_kps[right_ids[index]]
                     
-
+                    after_check = False
                     if len(cache_keypoints) > 0 and (cache_keypoints[left_ids[index]][0] > 0 or cache_keypoints[left_ids[index]][1] > 0):
                         point2 = cache_keypoints[left_ids[index]]
                     else:
@@ -168,7 +171,56 @@ class TacticalViewConverter:
                         second_impostor_keypoints.append((frame_idx, (right_ids[index], left_ids[index])))
                         continue
             
+            detected_points_copy = detected_points.copy()
+            for point, point2 in combinations(detected_points, 2):
+                if point == point2:
+                    detected_points_copy.remove(point)
+                    continue
+                    
+            
 
+
+            for point in detected_points_copy:
+                #better side
+                if (6 in detected_points_copy or 7 in detected_points_copy) and point != 6 and point !=7:
+                    side_result, _ = check_side(frame_kps[point], frame_kps[7 if 7 in detected_points_copy else 6], point, frame_idx)
+                    if side_result == 0:
+                        frame_kps[point] = (0.0, 0.0)
+                        detected_points_copy.remove(point)
+                        continue
+                side, percentage = self.get_side_of_court(frame_kps)
+                if point in left_ids:
+                    if side == 0:
+                        #godi
+                        pass
+                    else:
+                        # scambia da sinistra a destra
+                        sus_index = left_ids.index(point)
+                        frame_kps[right_ids[sus_index]] = frame_kps[left_ids[sus_index]]
+                        frame_kps[left_ids[sus_index]] = (0.0, 0.0)
+                        detected_points_copy.remove(left_ids[sus_index])
+                        detected_points_copy.append(right_ids[sus_index])
+
+                        third_impostor_keypoints.append((frame_idx, (left_ids[sus_index], right_ids[sus_index])))
+                        
+                elif point in right_ids:
+                    if side == 1:
+                        #godi
+                        pass
+                    else:
+                        # scambia da destra a sinistra
+                        sus_index = right_ids.index(point)
+                        frame_kps[left_ids[sus_index]] = frame_kps[right_ids[sus_index]]
+                        frame_kps[right_ids[sus_index]] = (0.0, 0.0)
+                        detected_points_copy.remove(right_ids[sus_index])
+                        detected_points_copy.append(left_ids[sus_index])
+
+                        third_impostor_keypoints.append((frame_idx, (right_ids[sus_index], left_ids[sus_index])))
+                        
+                    
+                
+            detected_points = detected_points_copy      
+                     
 
             invalid_keypoints = []
             # finding invalid points based on the symmetry on the minimap
@@ -180,15 +232,52 @@ class TacticalViewConverter:
                 if frame_kps[p0][0] == 0 and frame_kps[p0][1] == 0:
                     continue
 
-                other_indices = [
-                    idx for idx in detected_points
-                    if idx != p0 and idx not in invalid_keypoints
-                ]
+                # TODO: pensare in quel caso all'inversione
+                if (6 in detected_points or 7 in detected_points) and p0 != 6 and p0 !=7 and p0 not in invalid_keypoints:
+                    side_result, side = check_side(frame_kps[p0], frame_kps[7 if 7 in detected_points else 6], p0, frame_idx)
+                    if side_result == 0:
+                        frame_kps[p0] = (0.0, 0.0)
+                        invalid_keypoints.append(p0)
+                
+                other_values = []
+                near_indices = []
+                
+                for idx, num in enumerate(detected_points):
+                    if num != p0 and num not in invalid_keypoints:
+                        other_values.append(num)
+                    elif num == p0 and num not in invalid_keypoints:
+                        # left side
+                        if idx > 0:
+                            near_indices.append(idx-1)
+                        elif idx == 0:
+                            near_indices.append(idx+1)
+                        # right side
+                        if idx < len(detected_points) - 1:
+                            near_indices.append(idx)
+                        elif idx == len(detected_points) - 1:
+                            near_indices.append(idx-2)
+                 
 
-                if len(other_indices) < 2:
+                if len(other_values) < 3:
                     continue
 
-                p1, p2 = other_indices[0], other_indices[1]
+                max_error = 0
+                # capire quanto aumenta di tempo questo doppio for contando che massimo ci possno essere 8 punti a schermo
+                # togliamo p0 quindi 7 punti togliamo un punto a iterazione perché non ci possono essere due punti uguali
+                # quindi 7 * 6 = 42 / 2  = 21 eliminando le combinazioni invertite 
+                # 168 iterazioni a frame se ci sono esattamente 8 punti n * (n(n-1)/2) AAAAAAAAAAAAAAAAAAAAAAA
+
+                #for p1, p2 in combinations(other_values, 2):
+                
+                #get p1 and p2 from the same side
+
+                
+                if other_values[0] == 6 or other_values[0] == 7 or other_values[1] == 6 or other_values[1] == 7:
+                    p1 = other_values[-1]
+                    p2 = other_values[-2]
+                else:
+                    p1, p2 = other_values[0], other_values[1]
+                #p3, p4 = other_values[near_indices[0]], other_values[near_indices[1]]
 
                 # distanze nel frame
                 distance_p0_p1 = measure_distance(frame_kps[p0], frame_kps[p1])
@@ -208,25 +297,28 @@ class TacticalViewConverter:
                 
                 error = abs(prop_detected - prop_tactical) / abs(prop_tactical)
 
+                #if error > max_error:
+                #    max_error = error
+
+
                 if error >= 0.7:  # 70% di errore
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
 
+
                 # percentuale di side
                 percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
                 percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
-                if percentage_left == 0.125 and p0 in left_ids:
+                if percentage_left <= 0.250 and p0 in left_ids:
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
-                elif percentage_right == 0.125 and p0 in right_ids:
+                elif percentage_right <= 0.250 and p0 in right_ids:
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
-                    
-
                 
-                if (6 in detected_points or 7 in detected_points) and p0 != 6 and p0 !=7:
-                    side_result = check_side(frame_kps[p0], frame_kps[7 if 7 in detected_points else 6], p0, frame_idx)
-                    if side_result == 0:
+                if p0 not in [6, 7, 8, 9, 16, 17]:  # central points
+                    is_valid = self.validate_side_between_points(frame_kps, p0, frame_idx)
+                    if not is_valid:
                         frame_kps[p0] = (0.0, 0.0)
                         invalid_keypoints.append(p0)
 
@@ -270,6 +362,52 @@ class TacticalViewConverter:
         print("first_impostor_keypoints", first_impostor_keypoints)
         print("second_impostor_keypoints", second_impostor_keypoints)
         return keypoints_list            
+    
+    def validate_side_between_points(self, frame_kps: list[tuple[float, float]], p0: int, frame_idx: int) -> int:
+        '''
+        
+        '''
+        left_ids  = [0,  1,  2,  3,  4,  5,  8,  9]
+        right_ids = [15, 14, 13, 12, 11, 10, 16, 17]
+        sides = {0: left_ids, 1: right_ids}
+        free_throw_line = {0: [8,9], 1: [16,17]}
+
+        p1 = frame_kps[p0]
+
+        side_result, percentage = self.get_side_of_court(frame_kps)
+        side_ids = sides[side_result]
+
+        central_points = free_throw_line[side_result]
+
+        result = 0
+        for pc in central_points:
+            if frame_kps[pc][0] == 0.0 and frame_kps[pc][1] == 0.0:
+                continue
+            if p1[0] > frame_kps[pc][0] and side_result == 1:          # a destra
+                # godi
+                result = 1
+            elif p1[0] < frame_kps[pc][0] and side_result == 0:          # a sinistra
+                # godi
+                result = 1
+            else:                      
+                # non godi
+                result = 0
+
+        return result
+    
+    def get_side_of_court(self, frame_kps: list[tuple[float, float]]):
+        left_ids  = [0,  1,  2,  3,  4,  5,  8,  9]
+        right_ids = [15, 14, 13, 12, 11, 10, 16, 17]
+
+        percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
+        percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
+
+        if percentage_left > percentage_right:
+            return 0, percentage_left
+        else:
+            return 1, percentage_right
+        
+
     
     def transform_players_to_tactical_view(self, keypoints_list, players: list[list[Player]]) -> list[dict[int, list[float, float]]]:
         """
@@ -339,3 +477,4 @@ class TacticalViewConverter:
         return tactical_player_positions
 
     
+#TODO: last error between 2800 and 2828

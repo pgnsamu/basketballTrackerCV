@@ -43,7 +43,7 @@ def measure_distance(p1,p2):
     """
     return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)**0.5
 
-def check_side(p1: tuple[float, float], pc: tuple[float, float], id_p1: int, id_frame: int) -> int:
+def check_side(p1: tuple[float, float], pc: tuple[float, float], id_p1: int, id_frame: int) -> tuple[int, int]:
     '''
     Check if point p1 is on the side of the court where it is supposed to be.
     Args:
@@ -52,15 +52,15 @@ def check_side(p1: tuple[float, float], pc: tuple[float, float], id_p1: int, id_
         id_p1 (int): ID of the point to check.
         id_frame (int): Frame index (for debugging purposes).
     Returns:
-        int: 1 if the point is on the correct side, 0 otherwise.
+        tuple[int, int]: 1 if the point is on the correct side, 0 otherwise.
     '''
     left_ids  = {0,1,2,3,4,5,8,9}
     right_ids = {10,11,12,13,14,15,16,17}
 
     if p1[0] > pc[0]:          # a destra
-        return 1 if id_p1 in right_ids else 0
+        return (1, 1) if id_p1 in right_ids else (0, 1)
     else:                      # a sinistra (o uguale)
-        return 1 if id_p1 in left_ids else 0
+        return (1, 0) if id_p1 in left_ids else (0, 0)
 
 def measure_xy_distance(p1,p2):
     """
