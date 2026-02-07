@@ -182,6 +182,7 @@ class TacticalViewConverter:
 
             for point in detected_points_copy:
                 #better side
+                # TODO: pensare in quel caso all'inversione
                 if (6 in detected_points_copy or 7 in detected_points_copy) and point != 6 and point !=7:
                     side_result, _ = check_side(frame_kps[point], frame_kps[7 if 7 in detected_points_copy else 6], point, frame_idx)
                     if side_result == 0:
@@ -223,6 +224,7 @@ class TacticalViewConverter:
                      
 
             invalid_keypoints = []
+            inside_error_points = []
             # finding invalid points based on the symmetry on the minimap
             for p0 in detected_points:
 
@@ -232,12 +234,13 @@ class TacticalViewConverter:
                 if frame_kps[p0][0] == 0 and frame_kps[p0][1] == 0:
                     continue
 
-                # TODO: pensare in quel caso all'inversione
-                if (6 in detected_points or 7 in detected_points) and p0 != 6 and p0 !=7 and p0 not in invalid_keypoints:
-                    side_result, side = check_side(frame_kps[p0], frame_kps[7 if 7 in detected_points else 6], p0, frame_idx)
-                    if side_result == 0:
+                if p0 not in [6, 7, 8, 9, 16, 17]:  # central points
+                    is_valid = self.validate_side_between_points(frame_kps, p0, frame_idx)
+                    if not is_valid:
                         frame_kps[p0] = (0.0, 0.0)
                         invalid_keypoints.append(p0)
+                        inside_error_points.append(p0)
+                        continue
                 
                 other_values = []
                 near_indices = []
@@ -256,10 +259,18 @@ class TacticalViewConverter:
                             near_indices.append(idx)
                         elif idx == len(detected_points) - 1:
                             near_indices.append(idx-2)
-                 
+                
 
                 if len(other_values) < 3:
-                    continue
+                    if len(inside_error_points) > 0 and (len(inside_error_points) + len(other_values) - len(detected_points) + 1 == 0):
+                        for p in other_values:
+                            frame_kps[p] = (0.0, 0.0)
+                            invalid_keypoints.append(p)
+                            
+                        frame_kps[p0] = (0.0, 0.0)
+                        invalid_keypoints.append(p0)
+                    continue  
+                        
 
                 max_error = 0
                 # capire quanto aumenta di tempo questo doppio for contando che massimo ci possno essere 8 punti a schermo
@@ -316,11 +327,6 @@ class TacticalViewConverter:
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
                 
-                if p0 not in [6, 7, 8, 9, 16, 17]:  # central points
-                    is_valid = self.validate_side_between_points(frame_kps, p0, frame_idx)
-                    if not is_valid:
-                        frame_kps[p0] = (0.0, 0.0)
-                        invalid_keypoints.append(p0)
 
 
                 # serve per vedere se un punto ha vicino un suo simmetrico nello stesso frame
@@ -399,6 +405,7 @@ class TacticalViewConverter:
         left_ids  = [0,  1,  2,  3,  4,  5,  8,  9]
         right_ids = [15, 14, 13, 12, 11, 10, 16, 17]
 
+        # TODO: forse qui è sbagliato il calcolo e sarebbe meglio fare / len(frame_kps) con frame_kps che contiene solo i punti validi
         percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
         percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
 
