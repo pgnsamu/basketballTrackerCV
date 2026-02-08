@@ -315,7 +315,7 @@ class TacticalViewConverter:
                     frame_kps[p0] = (0.0, 0.0)
                     invalid_keypoints.append(p0)
 
-
+                
                 # percentuale di side
                 percentage_left = len([p for p in left_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(left_ids)
                 percentage_right = len([p for p in right_ids if frame_kps[p][0] > 0 or frame_kps[p][1] > 0]) / len(right_ids)
@@ -364,8 +364,9 @@ class TacticalViewConverter:
             multi_cache_keypoints.append(frame_kps)
 
 
-        print("first_impostor_keypoints", first_impostor_keypoints)
-        print("second_impostor_keypoints", second_impostor_keypoints)
+        #print("first_impostor_keypoints", first_impostor_keypoints)
+        #print("second_impostor_keypoints", second_impostor_keypoints)
+        #print("third_impostor_keypoints", third_impostor_keypoints)
         return keypoints_list            
     
     def validate_side_between_points(self, frame_kps: list[tuple[float, float]], p0: int, frame_idx: int) -> int:

@@ -16,19 +16,19 @@ import argparse
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Basketball Tracker CV - Video Analysis')
     
-    parser.add_argument('--video', type=str, default='video_1.mp4',
-                        help='Path del video da processare (default: video_1.mp4)')
+    parser.add_argument('--video', type=str, default='input_video/video_4.mp4',
+                        help='Path del video da processare (default: input_video/video_1.mp4)')
     parser.add_argument('--output-path', type=str, default='outputVideo/output_video.mp4',
                         help='Path del video di output (default: outputVideo/output_video.mp4)')
     parser.add_argument('--fps', type=float, default=30.0,
                         help='FPS del video di output (default: 30.0)')
     
-    parser.add_argument('--keypoint-model', type=str, default='models/BEST2.pt', required=True,
+    parser.add_argument('--keypoint-model', type=str, default='models/BEST2.pt',
                         help='Path del modello per rilevamento keypoints (default: models/BEST2.pt)')
-    parser.add_argument('--player-model', type=str, default='models/PlayerDet.pt', required=True,
+    parser.add_argument('--player-model', type=str, default='models/PlayerDet.pt',
                         help='Path del modello per rilevamento giocatori (default: models/PlayerDet.pt)')
     
-    parser.add_argument('--keypoint-stub', type=str, default='stubs/court_key_points_stub.pkl',
+    parser.add_argument('--keypoint-stub', type=str, default='stubs/court_key_points_stub_copia.pkl',
                         help='Path dello stub per keypoints (default: stubs/court_key_points_stub.pkl)')
     parser.add_argument('--player-stub', type=str, default='stubs/players_positions_stub.pkl',
                         help='Path dello stub per posizioni giocatori (default: stubs/players_positions_stub.pkl)')
@@ -46,6 +46,10 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
+    # Extract video filename from path
+    video_name = os.path.basename(args.video)
+    print(f"Processing video: {video_name}")
+    
     # Read Video
     video_frames = read_video(args.video)
     if video_frames == []:
@@ -60,7 +64,7 @@ def main():
         video_frames,
         read_from_stub=not args.no_stub,
         stub_path=args.keypoint_stub, 
-        label=args.video
+        label=video_name
     )
     print("Keypoint detection completed.")
     
@@ -70,7 +74,7 @@ def main():
         video_frames,
         read_from_stub=not args.no_stub,
         stub_path=args.player_stub,
-        label=args.video
+        label=video_name
     )
     print("Player and ball detection completed.")
     
