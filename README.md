@@ -32,20 +32,6 @@ Un sistema avanzato di computer vision per il tracciamento e l'analisi di partit
 - Python 3.8+
 - CUDA (opzionale, per accelerazione GPU)
 
-### Dipendenze Python
-```
-ultralytics==8.3.67
-rfdetr
-opencv-python
-numpy
-torch
-supervision
-```
-
-Installare tutte le dipendenze con:
-```bash
-pip install -r requirements.txt
-```
 
 ## 📦 Installazione
 
@@ -84,7 +70,7 @@ python main.py --keypoint-model models/BEST2.pt --player-model models/PlayerDet.
 ### Parametri Disponibili
 
 #### Video Input/Output
-- `--video`: Path del video da processare (default: `video_1.mp4`)
+- `--video`: Path del video da processare (default: `input_video/video_1.mp4`)
 - `--output-path`: Path del video di output (default: `outputVideo/output_video.mp4`)
 - `--fps`: FPS del video di output (default: `30.0`)
 
@@ -93,13 +79,14 @@ python main.py --keypoint-model models/BEST2.pt --player-model models/PlayerDet.
 - `--player-model`: Path del modello per rilevamento giocatori (richiesto)
 
 #### Stub (Cache)
+##### In qualunque caso ai path degli stubs viene concatenato alla fine il nome del video processato, per permettere di avere stubs separati per video diversi
 - `--keypoint-stub`: Path dello stub per keypoints (default: `stubs/court_key_points_stub.pkl`)
 - `--player-stub`: Path dello stub per posizioni giocatori (default: `stubs/players_positions_stub.pkl`)
 - `--no-stub`: Disabilita lettura da stub e ricalcola tutto
 
 #### Altri
-- `--court-image`: Path immagine campo tattico (default: `./images/basketball_court.png`)
-- `--debug`: Abilita modalità debug con visualizzazione frame
+- `--court-image`: Path immagine campo tattico (default: `images/basketball_court.png`)
+- `--debug`: Abilita modalità debug per visualizzazione numero frame e salvataggio keypoints rilevati in un file di testo
 
 ### Esempi
 
@@ -180,11 +167,28 @@ Il progetto utilizza due modelli di deep learning:
 - **Tipo**: YOLO per keypoint detection
 - **Scopo**: Rileva 18 keypoint del campo da basket
 - **Keypoint rilevati**:
-  - Bordi sinistro e destro del campo
-  - Linea di metà campo
-  - Linee tiro libero
-  - Angoli del campo
-  - Altri punti caratteristici
+  - [0] Angolo alto (lato sinistro)
+  - [1] Linea dei 3 punti dall'alto (lato sinistro)
+  - [2] Angolo sinistro alto dell'area per il tiro libero (lato sinistro)
+  - [3] Angolo sinistro basso dell'area per il tiro libero (lato sinistro)
+  - [4] Linea dei 3 punti dal basso (lato sinistro)
+  - [5] Angolo basso (lato sinistro)
+  - [8] Angolo destro alto dell'area per il tiro libero (lato sinistro)
+  - [9] Angolo destro basso dell'area per il tiro libero (lato sinistro)
+  ---
+  - [6] Linea di metà campo punto alto
+  - [7] Linea di metà campo punto basso
+  ---
+  - [10] Angolo alto (lato destro)
+  - [11] Linea dei 3 punti dall'alto (lato destro)
+  - [12] Angolo destro alto dell'area per il tiro libero (lato destro)
+  - [13] Angolo destro basso dell'area per il tiro libero (lato destro)
+  - [14] Linea dei 3 punti dal basso (lato destro)
+  - [15] Angolo basso (lato destro)
+  - [16] Angolo sinistro alto dell'area per il tiro libero (lato destro)
+  - [17] Angolo sinistro basso dell'area per il tiro libero (lato destro)
+
+  
 
 ### 2. Modello Giocatori e Pallone
 - **Tipo**: YOLO11 o RF-DETR
@@ -226,6 +230,29 @@ Il sistema genera:
 7. **Trasformazione**: Conversione a coordinate vista tattica
 8. **Rendering**: Generazione video finale con annotazioni
 
+## Validazione dei Keypoint Rilevati
+il processo di validazione è stato implementato in maniera try and error testando su diverse combinazioni di video, cercando di rifinire il risultato finale.
+
+#### Algoritmo finale di validazione:
+```Pseudo-code
+Per ogni frame:
+  Se non è il primo frame:
+    Controllo se c'è sovrapposizione con keypoint equivalenti degli ultimi 10 frame
+    Se c'è sovrapposizione:
+      Uso quelli già rilevati negli ultimi frame
+    Rimuovo i keypoint uguali
+  Per ogni keypoint rilevato:
+    Calcolo se sta nella parte del campo opportuna
+    Se non sta nella parte del campo opportuna:
+      Inverto con il suo equivalente
+    Trovo 2 keypoint di riferimento e calcolo la proporzione tra le distanze
+    Se la proporzione non è coerente con quella reale:
+      Scarto il keypoint
+    Controllo se c'è sovrapposizione con keypoint equivalenti nello stesso frame
+    Se c'è sovrapposizione:
+      Scarto il keypoint non coerente con il lato del campo inquadrato
+  ritorno i keypoint validati
+```
 ## 🐛 Risoluzione Problemi
 
 ### Errore: "OMP: Error #15"
@@ -250,21 +277,13 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - Controlla la dimensione di inferenza (attualmente 1280px)
 - Verifica che il modello sia compatibile con la risoluzione del video
 
-## 🤝 Contribuire
-
-Contributi, issues e feature requests sono benvenuti!
-
-1. Fork del progetto
-2. Crea il tuo Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit delle modifiche (`git commit -m 'Add some AmazingFeature'`)
-4. Push al Branch (`git push origin feature/AmazingFeature`)
-5. Apri una Pull Request
-
 ## 📄 Licenza
 
 La licenza per questo progetto non è ancora stata specificata.
 
-Dataset di training: [basketball-player-detection-3](https://universe.roboflow.com/projects-wh5rm/basketball-player-detection-3-ycjdo-cffrq) - CC BY 4.0
+Dataset di training giocatori e palla: [basketball-player-detection-3](https://universe.roboflow.com/projects-wh5rm/basketball-player-detection-3-ycjdo-cffrq)
+
+Dataset di training keypoint del campo: [reloc2-den7l](https://universe.roboflow.com/fyp-3bwmg/reloc2-den7l)
 
 ---
 
@@ -302,20 +321,6 @@ An advanced computer vision system for real-time basketball game tracking and an
 - Python 3.8+
 - CUDA (optional, for GPU acceleration)
 
-### Python Dependencies
-```
-ultralytics==8.3.67
-rfdetr
-opencv-python
-numpy
-torch
-supervision
-```
-
-Install all dependencies with:
-```bash
-pip install -r requirements.txt
-```
 
 ## 📦 Installation
 
@@ -354,7 +359,7 @@ python main.py --keypoint-model models/BEST2.pt --player-model models/PlayerDet.
 ### Available Parameters
 
 #### Video Input/Output
-- `--video`: Path to video to process (default: `video_1.mp4`)
+- `--video`: Path to video to process (default: `input_video/video_1.mp4`)
 - `--output-path`: Output video path (default: `outputVideo/output_video.mp4`)
 - `--fps`: Output video FPS (default: `30.0`)
 
@@ -363,13 +368,14 @@ python main.py --keypoint-model models/BEST2.pt --player-model models/PlayerDet.
 - `--player-model`: Player detection model path (required)
 
 #### Stub (Cache)
+##### In any case, the video name is appended to the end of the stub paths to allow separate stubs for different videos
 - `--keypoint-stub`: Keypoint stub path (default: `stubs/court_key_points_stub.pkl`)
 - `--player-stub`: Player positions stub path (default: `stubs/players_positions_stub.pkl`)
 - `--no-stub`: Disable stub reading and recalculate everything
 
 #### Other
-- `--court-image`: Tactical court image path (default: `./images/basketball_court.png`)
-- `--debug`: Enable debug mode with frame visualization
+- `--court-image`: Tactical court image path (default: `images/basketball_court.png`)
+- `--debug`: Enable debug mode with frame visualization and saving detected keypoints to a text file
 
 ### Examples
 
@@ -450,11 +456,27 @@ The project uses two deep learning models:
 - **Type**: YOLO for keypoint detection
 - **Purpose**: Detects 18 basketball court keypoints
 - **Detected keypoints**:
-  - Left and right court edges
-  - Half-court line
-  - Free throw lines
-  - Court corners
-  - Other characteristic points
+  - **Keypoint rilevati**:
+  - [0] Top left corner (lato sinistro)
+  - [1] Top 3-point line (lato sinistro)
+  - [2] Top left corner of free throw area (lato sinistro)
+  - [3] Bottom left corner of free throw area (lato sinistro)
+  - [4] Bottom 3-point line (lato sinistro)
+  - [5] Bottom left corner (lato sinistro)
+  - [8] Top right corner of free throw area (lato sinistro)
+  - [9] Bottom right corner of free throw area (lato sinistro)
+  ---
+  - [6] Top half-court line
+  - [7] Bottom half-court line
+  ---
+  - [10] Top right corner (lato destro)
+  - [11] Top 3-point line (lato destro)
+  - [12] Top right corner of free throw area (lato destro)
+  - [13] Bottom right corner of free throw area (lato destro)
+  - [14] Bottom 3-point line (lato destro)
+  - [15] Bottom right corner (lato destro)
+  - [16] Top left corner of free throw area (lato destro)
+  - [17] Bottom left corner of free throw area (lato destro)
 
 ### 2. Player and Ball Model
 - **Type**: YOLO11 or RF-DETR
@@ -496,6 +518,30 @@ The system generates:
 7. **Transformation**: Convert to tactical view coordinates
 8. **Rendering**: Generate final video with annotations
 
+## Validation of Detected Keypoints
+The validation process has been implemente in a try and error way testing on different combinations of videos, trying to refine the final result.
+
+#### Pseudo-code for final validation:
+```Pseudo-code
+For each frame:
+  If it is not the first frame:
+    Check for overlap with equivalent keypoints from the last 10 frames
+    If there is overlap:
+      Use the keypoints already detected in the previous frames
+    Remove duplicate keypoints
+  For each detected keypoint:
+    Calculate if it is in the correct part of the court
+    If it is not in the correct part of the court:
+      Swap it with its equivalent
+    Find 2 reference keypoints and calculate the proportion between the distances
+    If the proportion is not consistent with the real one:
+      Discard the keypoint
+    Check for overlap with equivalent keypoints in the same frame
+    If there is overlap:
+      Discard the keypoint that is not consistent with the side of the court being framed
+  Return the validated keypoints
+```
+
 ## 🐛 Troubleshooting
 
 ### Error: "OMP: Error #15"
@@ -520,27 +566,20 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - Check inference size (currently 1280px)
 - Verify model is compatible with video resolution
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-1. Fork the project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
 ## 📄 License
 
 The license for this project has not yet been specified.
 
-Training dataset: [basketball-player-detection-3](https://universe.roboflow.com/projects-wh5rm/basketball-player-detection-3-ycjdo-cffrq) - CC BY 4.0
+Training dataset: [basketball-player-detection-3](https://universe.roboflow.com/projects-wh5rm/basketball-player-detection-3-ycjdo-cffrq) 
+
+Dataset for court keypoints: [reloc2-den7l](https://universe.roboflow.com/fyp-3bwmg/reloc2-den7l)
 
 ---
 
 ## 👥 Authors
 
 - [@pgnsamu](https://github.com/pgnsamu)
+- [@AlessioCesarini](https://github.com/AlessioCesarini)
 
 ## 🙏 Acknowledgments
 
