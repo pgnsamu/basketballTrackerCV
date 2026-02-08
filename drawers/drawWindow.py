@@ -147,6 +147,7 @@ class DrawWindow:
             out_path: str = None,                 # NEW: if set, stream output to file instead of storing in RAM
             fps: float = 30.0,                    # NEW: used only if out_path is set
             codec: str = "mp4v",                  # NEW: used only if out_path is set
+            debug: bool = False
         ):
         """
         Draw all frames with points and boxes.
@@ -161,6 +162,7 @@ class DrawWindow:
             out_path: frames are written to this video path (constant memory)
             fps: output video fps
             codec: fourcc codec (e.g. "mp4v", "avc1")
+            debug: if True, draw frame index on each frame
         """
         # draw small first
         frameImg = cv2.imread("images/basketball_court.png")
@@ -187,8 +189,9 @@ class DrawWindow:
             # Draw frame index
             width = frame.shape[1]
             height = frame.shape[0]
-
-            frameSpec = cv2.putText(frameSpec, str(frame_idx), (width - 200, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            
+            if debug:
+                frameSpec = cv2.putText(frameSpec, str(frame_idx), (width - 200, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
             
             frameSpec = self.drawPointsOnFrame(frameSpec, points_per_frame[frame_idx])
             
