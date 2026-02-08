@@ -262,7 +262,7 @@ Contributi, issues e feature requests sono benvenuti!
 
 ## 📄 Licenza
 
-Questo progetto è distribuito sotto licenza [specificare licenza].
+La licenza per questo progetto non è ancora stata specificata.
 
 Dataset di training: [basketball-player-detection-3](https://universe.roboflow.com/projects-wh5rm/basketball-player-detection-3-ycjdo-cffrq) - CC BY 4.0
 
@@ -532,7 +532,7 @@ Contributions, issues, and feature requests are welcome!
 
 ## 📄 License
 
-This project is distributed under [specify license].
+The license for this project has not yet been specified.
 
 Training dataset: [basketball-player-detection-3](https://universe.roboflow.com/projects-wh5rm/basketball-player-detection-3-ycjdo-cffrq) - CC BY 4.0
 
