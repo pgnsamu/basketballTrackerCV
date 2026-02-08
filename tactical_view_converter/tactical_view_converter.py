@@ -114,7 +114,6 @@ class TacticalViewConverter:
                 continue
 
             if frame_idx > 0:
-                # TODO: in teoria lo switch dei punti dovrebbe rimanere finche non si rilevano i punti centrali e quelli nuovi vengano messi dall'altra parte della linea
                 # in questo caso si fa fede alla prima detection valida
                 for index, left_index  in enumerate(left_ids):   
                     # left new right cached
@@ -459,7 +458,6 @@ class TacticalViewConverter:
                 homography = Homography(source_points, target_points)
                 
                 for player in players_in_frame:
-                    # TODO: check if everytime the player has track_id
                     if player.track_id is None:
                         continue
                     player_id = int(player.track_id)
@@ -470,7 +468,6 @@ class TacticalViewConverter:
                     tactical_position = homography.transform_points(player_position.reshape(1, 2), inverse=False)
                     # If tactical position is not in the tactical view, skip
                     if tactical_position[0][0] < 0 or tactical_position[0][0] > self.width or tactical_position[0][1] < 0 or tactical_position[0][1] > self.height:
-                        #print("|||||||||||||||||||||||") # TODO: errore probabilmente qui 
                         continue
                     tactical_positions[player_id] = tactical_position[0].tolist()
                     
@@ -482,6 +479,3 @@ class TacticalViewConverter:
             tactical_player_positions.append(tactical_positions)
         
         return tactical_player_positions
-
-    
-#TODO: last error between 2800 and 2828

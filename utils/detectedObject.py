@@ -9,7 +9,6 @@ import cv2
 class DetectedObject:
     xyxy: np.ndarray      # (4,) float [x1,y1,x2,y2]
     conf: float
-    class_id: int #TODO: maybe an enum is better i need to know if there is a class_id for the possessor
 
     @property
     def x1(self): return float(self.xyxy[0])

@@ -229,7 +229,6 @@ class PlayerBallDetector:
                 poss_candidate = candidate
                 poss_streak = 1
 
-        # TODO: this seems like to not working
             if poss_candidate is not None and poss_streak >= self.STABLE_FRAMES:
                 for player in tracked_players:
                     if player.track_id == poss_candidate:
