@@ -22,7 +22,6 @@ class TacticalViewConverter:
         self.frame_height = video_height
         self.frame_width = video_width
 
-        # TODO: calculate this value based on the video resolution maybe a 5%/10% of the width
         # self.THRESHOLD_DISTANCE = self.frame_width * 0.05 
         self.THRESHOLD_DISTANCE = 70
 
@@ -181,7 +180,6 @@ class TacticalViewConverter:
 
             for point in detected_points_copy:
                 #better side
-                # TODO: pensare in quel caso all'inversione
                 if (6 in detected_points_copy or 7 in detected_points_copy) and point != 6 and point !=7:
                     side_result, _ = check_side(frame_kps[point], frame_kps[7 if 7 in detected_points_copy else 6], point, frame_idx)
                     if side_result == 0:
@@ -269,17 +267,6 @@ class TacticalViewConverter:
                         frame_kps[p0] = (0.0, 0.0)
                         invalid_keypoints.append(p0)
                     continue  
-                        
-
-                max_error = 0
-                # capire quanto aumenta di tempo questo doppio for contando che massimo ci possno essere 8 punti a schermo
-                # togliamo p0 quindi 7 punti togliamo un punto a iterazione perché non ci possono essere due punti uguali
-                # quindi 7 * 6 = 42 / 2  = 21 eliminando le combinazioni invertite 
-                # 168 iterazioni a frame se ci sono esattamente 8 punti n * (n(n-1)/2) AAAAAAAAAAAAAAAAAAAAAAA
-
-                #for p1, p2 in combinations(other_values, 2):
-                
-                #get p1 and p2 from the same side
 
                 
                 if other_values[0] == 6 or other_values[0] == 7 or other_values[1] == 6 or other_values[1] == 7:
@@ -287,7 +274,6 @@ class TacticalViewConverter:
                     p2 = other_values[-2]
                 else:
                     p1, p2 = other_values[0], other_values[1]
-                #p3, p4 = other_values[near_indices[0]], other_values[near_indices[1]]
 
                 # distanze nel frame
                 distance_p0_p1 = measure_distance(frame_kps[p0], frame_kps[p1])
@@ -306,9 +292,6 @@ class TacticalViewConverter:
                 prop_tactical = distance_p0_p1_tactic / distance_p0_p2_tactic
                 
                 error = abs(prop_detected - prop_tactical) / abs(prop_tactical)
-
-                #if error > max_error:
-                #    max_error = error
 
 
                 if error >= 0.7:  # 70% di errore
@@ -454,7 +437,6 @@ class TacticalViewConverter:
             target_points = np.array([self.key_points[i] for i in valid_indices], dtype=np.float32)
             
             try:
-                # print("Creating homography for frame:", frame_idx, "with valid keypoints:", valid_indices)
                 # Create homography transformer
                 homography = Homography(source_points, target_points)
                 
