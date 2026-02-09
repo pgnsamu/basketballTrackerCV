@@ -62,7 +62,6 @@ class CourtKeypointDetector:
                 # tensor: (n_instances, 18, 2)
                 xy = detection.keypoints.xy
                 if xy is None or xy.numel() == 0 or xy.shape[1] == 0:
-                    # qui sei nel caso: tensor([], size=(1,0,2)) oppure comunque vuoto
                     court_keypoints.append(None)
                     continue
 

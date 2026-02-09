@@ -1,10 +1,3 @@
-"""
-A module providing utility functions for bounding box calculations and measurements.
-
-This module contains helper functions for working with bounding boxes, including
-calculations for centers, widths, and distances between points.
-"""
-
 def get_center_of_bbox(bbox):
     """
     Calculate the center coordinates of a bounding box.

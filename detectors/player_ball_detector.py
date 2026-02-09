@@ -50,7 +50,7 @@ class PlayerBallDetector:
             
             
         # 5. PARAMETRI INFERENZA
-        self.INFERENCE_SIZE = 1280  # FONDAMENTALE: Hai allenato a 1280px!
+        self.INFERENCE_SIZE = 1280 
         self.CONF_THRESHOLD = 0.45  # Confidenza base per accettare una detection
         
         if self.using_yolo:
@@ -331,6 +331,5 @@ if __name__ == "__main__":
     cv2.imshow("Players Detection", annotated_frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    #print("Detected player positions:", player_positions)
     
     

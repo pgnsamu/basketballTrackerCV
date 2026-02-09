@@ -1,10 +1,3 @@
-"""
-A module for reading and writing video files.
-
-This module provides utility functions to load video frames into memory and save
-processed frames back to video files, with support for common video formats.
-"""
-
 import cv2
 import os
 

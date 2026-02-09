@@ -24,9 +24,9 @@ from PIL import Image
 from roboflow import Roboflow
 
 # Chiavi API 
-ROBOFLOW_API_KEY = "rf_SAVeUEH7P5W6fC6IpshsX6IBVbW2" 
+ROBOFLOW_API_KEY = "" 
 os.environ["ROBOFLOW_API_KEY"] = ROBOFLOW_API_KEY
-rf = Roboflow(api_key="FwSC85pmDizQnJJu6fpt")
+rf = Roboflow(api_key=ROBOFLOW_API_KEY)
 
 # Variabile globale
 model = None
