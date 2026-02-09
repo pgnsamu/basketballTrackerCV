@@ -257,7 +257,7 @@ This ensures the matrix renders as a block element rather than inline.
 
 La trasformazione di un punto $(x, y)$ in coordinate omogenee è:
 
-$$\begin{pmatrix} x' \\ y' \\ w' \end{pmatrix} = H \begin{pmatrix} x \\ y \\ 1 \end{pmatrix}$$
+$$\begin{pmatrix} x' \\\ y' \\\ w' \end{pmatrix} = H \begin{pmatrix} x \\\ y \\\ 1 \end{pmatrix}$$
 
 Il punto risultante in coordinate cartesiane è:
 
@@ -558,11 +558,11 @@ The validation process has been implemented in a try and error way, testing on d
 
 The homography is a 3×3 perspective transformation that maps points from one plane to another:
 
-$$H = \begin{pmatrix} h_{11} & h_{12} & h_{13} \\ h_{21} & h_{22} & h_{23} \\ h_{31} & h_{32} & h_{33} \end{pmatrix}$$
+$$H = \begin{pmatrix} h_{11} & h_{12} & h_{13} \\\ h_{21} & h_{22} & h_{23} \\\ h_{31} & h_{32} & h_{33} \end{pmatrix}$$
 
 The transformation of a point $(x, y)$ in homogeneous coordinates is:
 
-$$\begin{pmatrix} x' \\ y' \\ w' \end{pmatrix} = H \begin{pmatrix} x \\ y \\ 1 \end{pmatrix}$$
+$$\begin{pmatrix} x' \\\ y' \\\ w' \end{pmatrix} = H \begin{pmatrix} x \\\ y \\\ 1 \end{pmatrix}$$
 
 The resulting point in Cartesian coordinates is:
 
