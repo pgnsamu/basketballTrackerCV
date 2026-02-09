@@ -13,7 +13,6 @@ Un sistema avanzato di computer vision per il tracciamento e l'analisi di partit
 - [Modelli](#modelli)
 - [Output](#output)
 - [Risoluzione Problemi](#risoluzione-problemi)
-- [Contribuire](#contribuire)
 - [Licenza](#licenza)
 
 ## ✨ Caratteristiche
@@ -188,6 +187,11 @@ Il progetto utilizza due modelli di deep learning:
   - [16] Angolo sinistro alto dell'area per il tiro libero (lato destro)
   - [17] Angolo sinistro basso dell'area per il tiro libero (lato destro)
 
+  ![Basketball Court Keypoints](images/forREADME/court_stylized.png)
+
+  #### Metriche del Modello per il rilevamento del campo durante l'addestramento:
+  ![Keypoint Model Metrics](images/forREADME/metrics:mAP50-95(B).png)
+
   
 
 ### 2. Modello Giocatori e Pallone
@@ -199,6 +203,10 @@ Il progetto utilizza due modelli di deep learning:
   - Tracciamento multi-oggetto con ByteTrack
   - Rilevamento del possesso palla
   - Smoothing EMA per posizione pallone
+
+  #### Metriche del Modello per il rilevamento di giocatori e pallone durante l'addestramento:
+  ![Player and Ball Model Metrics](images/forREADME/results.png)
+
 
 ## 📊 Output
 
@@ -302,7 +310,6 @@ An advanced computer vision system for real-time basketball game tracking and an
 - [Models](#models-1)
 - [Output](#output-1)
 - [Troubleshooting](#troubleshooting-1)
-- [Contributing](#contributing-1)
 - [License](#license-1)
 
 ## ✨ Features
@@ -478,6 +485,11 @@ The project uses two deep learning models:
   - [16] Top left corner of free throw area (lato destro)
   - [17] Bottom left corner of free throw area (lato destro)
 
+  ![Basketball Court Keypoints](images/forREADME/court_stylized.png)
+
+  #### Court Keypoint Model metrics during training:
+  ![Keypoint Model Metrics](images/forREADME/metrics:mAP50-95(B).png)
+
 ### 2. Player and Ball Model
 - **Type**: YOLO11 or RF-DETR
 - **Detected classes**:
@@ -487,6 +499,10 @@ The project uses two deep learning models:
   - Multi-object tracking with ByteTrack
   - Ball possession detection
   - EMA smoothing for ball position
+
+  #### Player and Ball Model metrics during training:
+  ![Player and Ball Model Metrics](images/forREADME/results.png)
+
 
 ## 📊 Output
 
