@@ -250,7 +250,7 @@ il processo di validazione è stato implementato in maniera try and error testan
 L'omografia è una trasformazione prospettica 3×3 che mappa punti da un piano a un altro:
 
 $$\begin{equation*}
-H = \begin{pmatrix} h_{11} & h_{12} & h_{13} \\ h_{21} & h_{22} & h_{23} \\ h_{31} & h_{32} & h_{33} \end{pmatrix}
+H = \begin{pmatrix} h_{11} & h_{12} & h_{13} \\\ h_{21} & h_{22} & h_{23} \\\ h_{31} & h_{32} & h_{33} \end{pmatrix}
 \end{equation*}$$
 
 This ensures the matrix renders as a block element rather than inline.
