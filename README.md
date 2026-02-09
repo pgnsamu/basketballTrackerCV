@@ -19,7 +19,7 @@ Un sistema avanzato di computer vision per il tracciamento e l'analisi di partit
 
 - **Rilevamento Giocatori e Pallone**: Utilizza modelli YOLO11 o RF-DETR per il rilevamento accurato di giocatori e pallone
 - **Tracciamento Multi-Oggetto**: Implementa ByteTrack per tracciare i giocatori attraverso i frame anche con occlusioni
-- **Rilevamento Keypoint del Campo**: Identifica automaticamente i punti chiave del campo da basket (linee, canestri, etc.)
+- **Rilevamento Keypoint del Campo**: Identifica automaticamente i punti chiave del campo da basket (linee, punti chiave, ecc.)
 - **Vista Tattica**: Trasforma le posizioni dei giocatori in una vista tattica 2D del campo
 - **Interpolazione Intelligente**: Riempie automaticamente i dati mancanti per posizioni di giocatori e pallone
 - **Calcolo del Possesso**: Determina quale giocatore ha il possesso del pallone
@@ -316,7 +316,7 @@ An advanced computer vision system for real-time basketball game tracking and an
 
 - **Player and Ball Detection**: Uses YOLO11 or RF-DETR models for accurate player and ball detection
 - **Multi-Object Tracking**: Implements ByteTrack to track players across frames even with occlusions
-- **Court Keypoint Detection**: Automatically identifies basketball court keypoints (lines, hoops, etc.)
+- **Court Keypoint Detection**: Automatically identifies basketball court keypoints (lines, keypoints, etc.)
 - **Tactical View**: Transforms player positions into a 2D tactical court view
 - **Smart Interpolation**: Automatically fills missing data for player and ball positions
 - **Possession Calculation**: Determines which player has ball possession
