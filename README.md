@@ -66,6 +66,8 @@ Posiziona i modelli nella cartella `models/`.
 python main.py --keypoint-model models/BEST2.pt --player-model models/PlayerDet.pt
 ```
 
+Purtroppo ancora non si è riusciti ad alleggerire i processi di inferenza in modo tale da permettere l'esecuzione in tempo reale su video a 30 fps e risoluzione 1920x1080.
+
 ### Parametri Disponibili
 
 #### Video Input/Output
@@ -193,7 +195,6 @@ Il progetto utilizza due modelli di deep learning:
   ![Keypoint Model Metrics](images/forREADME/metrics:mAP50-95(B).png)
 
   
-
 ### 2. Modello Giocatori e Pallone
 - **Tipo**: YOLO11 o RF-DETR
 - **Classi rilevate**:
@@ -242,25 +243,25 @@ Il sistema genera:
 il processo di validazione è stato implementato in maniera try and error testando su diverse combinazioni di video, cercando di rifinire il risultato finale.
 
 #### Algoritmo finale di validazione:
-```Pseudo-code
-Per ogni frame:
-  Se non è il primo frame:
-    Controllo se c'è sovrapposizione con keypoint equivalenti degli ultimi 10 frame
-    Se c'è sovrapposizione:
-      Uso quelli già rilevati negli ultimi frame
-    Rimuovo i keypoint uguali
-  Per ogni keypoint rilevato:
-    Calcolo se sta nella parte del campo opportuna
-    Se non sta nella parte del campo opportuna:
-      Inverto con il suo equivalente
-    Trovo 2 keypoint di riferimento e calcolo la proporzione tra le distanze
-    Se la proporzione non è coerente con quella reale:
-      Scarto il keypoint
-    Controllo se c'è sovrapposizione con keypoint equivalenti nello stesso frame
-    Se c'è sovrapposizione:
-      Scarto il keypoint non coerente con il lato del campo inquadrato
-  ritorno i keypoint validati
-```
+![Algoritmo di validazione keypoint](images/forREADME/algo.png)
+
+### Riferimenti teorici all'omografia
+
+L'omografia è una trasformazione prospettica 3×3 che mappa punti da un piano a un altro:
+
+$$H = \begin{pmatrix} h_{11} & h_{12} & h_{13} \\ h_{21} & h_{22} & h_{23} \\ h_{31} & h_{32} & h_{33} \end{pmatrix}$$
+
+La trasformazione di un punto $(x, y)$ in coordinate omogenee è:
+
+$$\begin{pmatrix} x' \\ y' \\ w' \end{pmatrix} = H \begin{pmatrix} x \\ y \\ 1 \end{pmatrix}$$
+
+Il punto risultante in coordinate cartesiane è:
+
+$$x_{risultato} = \frac{x'}{w'}, \quad y_{risultato} = \frac{y'}{w'}$$
+
+Nel progetto, l'omografia viene calcolata utilizzando almeno 4 corrispondenze punto-a-punto tra i keypoint del campo rilevati e le coordinate note nel piano tattico, applicando l'algoritmo DLT (Direct Linear Transform) o RANSAC per robustezza.
+
+
 ## 🐛 Risoluzione Problemi
 
 ### Errore: "OMP: Error #15"
@@ -284,6 +285,14 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - Verifica le soglie di confidenza in `player_ball_detector.py`
 - Controlla la dimensione di inferenza (attualmente 1280px)
 - Verifica che il modello sia compatibile con la risoluzione del video
+
+
+##  Known issues
+- The system may struggle with heavy occlusions or very fast movements, leading to temporary loss of tracking. Future improvements will focus on enhancing robustness in these scenarios.
+- In case the court keypoints are on the same horizontal/vertical line, the homography calculation may become unstable.
+- In case of no detections of keypoints for a frame the transposition of the players won't be performed
+- The current implementation does not yet support real-time processing at 30 fps and 1920x1080 resolution due to computational constraints. Future optimizations will aim to improve performance.
+- The system may have difficulty accurately determining ball possession in crowded scenes or when the ball is occluded.
 
 ## 📄 Licenza
 
@@ -362,6 +371,7 @@ Place the models in the `models/` folder.
 ```bash
 python main.py --keypoint-model models/BEST2.pt --player-model models/PlayerDet.pt
 ```
+Unfortunately, the inference processes have not yet been optimized to allow real-time execution on videos at 30 fps and 1920x1080 resolution.
 
 ### Available Parameters
 
@@ -535,28 +545,27 @@ The system generates:
 8. **Rendering**: Generate final video with annotations
 
 ## Validation of Detected Keypoints
-The validation process has been implemente in a try and error way testing on different combinations of videos, trying to refine the final result.
+The validation process has been implemented in a try and error way, testing on different combinations of videos, trying to refine the final result.
 
 #### Pseudo-code for final validation:
-```Pseudo-code
-For each frame:
-  If it is not the first frame:
-    Check for overlap with equivalent keypoints from the last 10 frames
-    If there is overlap:
-      Use the keypoints already detected in the previous frames
-    Remove duplicate keypoints
-  For each detected keypoint:
-    Calculate if it is in the correct part of the court
-    If it is not in the correct part of the court:
-      Swap it with its equivalent
-    Find 2 reference keypoints and calculate the proportion between the distances
-    If the proportion is not consistent with the real one:
-      Discard the keypoint
-    Check for overlap with equivalent keypoints in the same frame
-    If there is overlap:
-      Discard the keypoint that is not consistent with the side of the court being framed
-  Return the validated keypoints
-```
+![Keypoint validation algorithm](images/forREADME/algo.png)
+
+### Riferimenti teorici all'omografia
+
+The homography is a 3×3 perspective transformation that maps points from one plane to another:
+
+$$H = \begin{pmatrix} h_{11} & h_{12} & h_{13} \\ h_{21} & h_{22} & h_{23} \\ h_{31} & h_{32} & h_{33} \end{pmatrix}$$
+
+The transformation of a point $(x, y)$ in homogeneous coordinates is:
+
+$$\begin{pmatrix} x' \\ y' \\ w' \end{pmatrix} = H \begin{pmatrix} x \\ y \\ 1 \end{pmatrix}$$
+
+The resulting point in Cartesian coordinates is:
+
+$$x_{result} = \frac{x'}{w'}, \quad y_{result} = \frac{y'}{w'}$$
+
+In the project, the homography is calculated using at least 4 point-to-point correspondences between the detected court keypoints and the known coordinates in the tactical plane, applying the DLT (Direct Linear Transform) or RANSAC algorithm for robustness.
+
 
 ## 🐛 Troubleshooting
 
@@ -581,6 +590,13 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - Check confidence thresholds in `player_ball_detector.py`
 - Check inference size (currently 1280px)
 - Verify model is compatible with video resolution
+
+## Known issues
+- The system may struggle with heavy occlusions or very fast movements, leading to temporary loss of tracking. Future improvements will focus on enhancing robustness in these scenarios.
+- In case the court keypoints are on the same horizontal/vertical line, the homography calculation may become unstable.
+- In case of no detections of keypoints for a frame the transposition of the players won't be performed
+- The current implementation does not yet support real-time processing at 30 fps and 1920x1080 resolution due to computational constraints. Future optimizations will aim to improve performance.
+- The system may have difficulty accurately determining ball possession in crowded scenes or when the ball is occluded.
 
 ## 📄 License
 

@@ -1,0 +1,73 @@
+---
+config:
+  theme: redux-dark
+---
+flowchart LR
+    A(["Inizio: nuovo frame"]) --> B{"È il primo frame?"}
+    B -- Sì --> D["Keypoint rilevati = input frame"]
+    B -- No --> C["Confronto con ultimi 10 frame:<br>keypoint equivalenti sovrapposti?"]
+    C --> C1@{ label: "C'è sovrapposizione?" }
+    C1 -- Sì --> C2["Usa keypoint già presenti<br>negli ultimi frame"]
+    C1 -- No --> D
+    C2 --> D
+    D --> E["Rimuovi keypoint uguali - duplicati"]
+    E --> F{{"Per ogni keypoint rilevato"}}
+    F --> G["Verifica se sta nella parte di campo corretta"]
+    G --> H{"È nella parte corretta?"}
+    H -- No --> I["Inverti con keypoint equivalente"]
+    H -- Sì --> J["Continua"]
+    I --> J
+    J --> K["Trova 2 keypoint di riferimento"]
+    K --> L["Calcola proporzione distanze: misurata / reale"]
+    L --> M{"Proporzione coerente con quella reale?"}
+    M -- No --> N["Scarta keypoint"]
+    M -- Sì --> O["Controlla sovrapposizione con<br>keypoint equivalenti nello stesso frame"]
+    O --> P@{ label: "C'è sovrapposizione?" }
+    P -- No --> Q["Accetta keypoint"]
+    P -- Sì --> R["Scarta il keypoint non coerente<br>con il lato del campo inquadrato"]
+    R --> S["Prossimo keypoint"]
+    Q --> S
+    N --> S
+    S --> T{"Finito di iterare tutti i keypoint?"}
+    T -- No --> F
+    T -- Sì --> U(["Ritorna keypoint validati"])
+
+    C1@{ shape: diamond}
+    P@{ shape: diamond}
+
+
+------ ENGLISH
+
+---
+config:
+  theme: redux-dark
+---
+flowchart LR
+    A(["For each frame"]) --> B{"Is it the first frame?"}
+    B -- Yes --> D["Detected keypoints = input frame"]
+    B -- No --> C["Check overlap with equivalent keypoints<br>from last 10 frames"]
+    C --> C1{"Is there overlap?"}
+    C1 -- Yes --> C2["Use keypoints already detected<br>in previous frames"]
+    C1 -- No --> D
+    C2 --> D
+    D --> E["Remove duplicate keypoints"]
+    E --> F{{"For each detected keypoint"}}
+    F --> G["Check if keypoint is in the correct part of the court"]
+    G --> H{"Is it in the correct part?"}
+    H -- No --> I["Swap it with its equivalent"]
+    H -- Yes --> J["Continue"]
+    I --> J
+    J --> K["Find 2 reference keypoints"]
+    K --> L["Compute distance proportion (measured / real)"]
+    L --> M{"Is the proportion consistent?"}
+    M -- No --> N["Discard keypoint"]
+    M -- Yes --> O["Check overlap with equivalent keypoints<br>in the same frame"]
+    O --> P{"Is there overlap?"}
+    P -- No --> Q["Accept keypoint"]
+    P -- Yes --> R["Discard keypoint not consistent<br>with the framed side of the court"]
+    R --> S["Next keypoint"]
+    Q --> S
+    N --> S
+    S --> T{"Finished iterating all keypoints?"}
+    T -- No --> F
+    T -- Yes --> U(["Return validated keypoints"])
