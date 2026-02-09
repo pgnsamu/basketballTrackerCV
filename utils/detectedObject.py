@@ -9,6 +9,7 @@ import cv2
 class DetectedObject:
     xyxy: np.ndarray      # (4,) float [x1,y1,x2,y2]
     conf: float
+    class_id: int
 
     @property
     def x1(self): return float(self.xyxy[0])
