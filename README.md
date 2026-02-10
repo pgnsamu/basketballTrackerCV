@@ -243,7 +243,7 @@ Il sistema genera:
 il processo di validazione è stato implementato in maniera try and error testando su diverse combinazioni di video, cercando di rifinire il risultato finale.
 
 #### Algoritmo finale di validazione:
-![Algoritmo di validazione keypoint](images/forREADME/algo.png)
+![Algoritmo di validazione keypoint](images/forREADME/algo2.png){height=100px;width=100px}
 
 ### Riferimenti teorici all'omografia
 
