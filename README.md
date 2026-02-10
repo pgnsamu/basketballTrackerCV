@@ -1,6 +1,6 @@
 # Basketball Tracker CV 🏀
 
-Un sistema avanzato di computer vision per il tracciamento e l'analisi di partite di basket in tempo reale, con visualizzazione tattica.
+Un sistema per il tracciamento e l'analisi di partite di basket in tempo reale, con visualizzazione tattica, basato su machine learning e computer vision.
 
 [English version below](#english-version)
 
@@ -322,7 +322,7 @@ Dataset di training keypoint del campo: [reloc2-den7l](https://universe.roboflow
 
 # Basketball Tracker CV 🏀
 
-An advanced computer vision system for real-time basketball game tracking and analysis with tactical visualization.
+A system for real-time basketball game tracking and analysis with tactical visualization, based on machine learning and computer vision.
 
 ## 📋 Table of Contents
 - [Features](#features-1)
