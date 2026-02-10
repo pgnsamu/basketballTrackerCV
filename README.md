@@ -702,3 +702,4 @@ Dataset for court keypoints: [reloc2-den7l](https://universe.roboflow.com/fyp-3b
 - RF-DETR detection framework
 - Supervision library for tracking
 - Roboflow for the training dataset
+- [Embiricos, Alexander, and Gabriel Poon. "Single-view 3D reconstruction of basketball scenes." Retreived on the 16th of September (2017).](https://arc.net/l/quote/npmaqijg)
