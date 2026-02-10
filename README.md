@@ -125,42 +125,44 @@ python main.py \
 
 ```
 basketballTrackerCV/
-├── main.py                          # Entry point principale
-├── requirements.txt                 # Dipendenze Python
-├── README.md                        # Questo file
+├── main.py                           # Entry point principale
+├── requirements.txt                  # Dipendenze Python
+├── README.md                         # Questo file
 │
-├── detectors/                       # Moduli di rilevamento
-│   ├── keypoint_detector.py        # Rilevamento keypoint del campo
-│   ├── player_ball_detector.py     # Rilevamento giocatori e pallone
-│   └── player_tracker.py           # Tracciamento e interpolazione
+├── detectors/                        # Moduli di rilevamento
+│   ├── keypoint_detector.py          # Rilevamento keypoint del campo
+│   ├── player_ball_detector.py       # Rilevamento giocatori e pallone
+│   └── player_tracker.py             # Tracciamento e interpolazione
 │
-├── homography/                      # Trasformazione prospettica
-│   └── homography.py               # Calcolo omografia
+├── homography/                       # Trasformazione prospettica
+│   └── homography.py                 # Calcolo omografia
 │
-├── tactical_view_converter/        # Vista tattica
-│   └── tactical_view_converter.py  # Conversione coordinate a vista tattica
+├── tactical_view_converter/          # Vista tattica
+│   └── tactical_view_converter.py    # Conversione coordinate a vista tattica
 │
-├── drawers/                         # Rendering e visualizzazione
-│   ├── drawWindow.py               # Gestione finestra output
-│   └── drawPoint.py                # Rendering elementi grafici
+├── drawers/                          # Rendering e visualizzazione
+│   ├── drawWindow.py                 # Gestione finestra output
+│   └── drawPoint.py                  # Rendering elementi grafici
 │
-├── utils/                           # Utility varie
-│   ├── video_utils.py              # Lettura/scrittura video
-│   ├── detectedObject.py           # Classi oggetti rilevati
-│   ├── bbox_utils.py               # Utilità bounding box
-│   ├── stubs_utils.py              # Gestione cache
-│   └── overlay.py                  # Overlay grafici
+├── utils/                            # Utility varie
+│   ├── video_utils.py                # Lettura/scrittura video
+│   ├── detectedObject.py             # Classi oggetti rilevati
+│   ├── bbox_utils.py                 # Utilità bounding box
+│   ├── stubs_utils.py                # Gestione cache
+│   └── overlay.py                    # Overlay grafici
 │
-├── models/                          # Modelli di ML (non inclusi nel repo)
-│   ├── BEST2.pt                    # Modello keypoint
-│   └── PlayerDet.pt                # Modello giocatori/pallone
+├── models/                           # Modelli di ML (non inclusi nel repo)
+│   ├── BEST2.pt                      # Modello keypoint
+│   └── PlayerDet.pt                  # Modello giocatori/pallone
 │
-├── images/                          # Immagini risorse
-│   └── basketball_court.png        # Immagine campo tattico
+├── images/                           # Immagini risorse
+│   ├── forREADME/                    # Immagini per il README
+│   └── basketball_court.png          # Immagine campo tattico
 │
-├── input_video/                     # Video di input
-├── outputVideo/                     # Video elaborati
-└── stubs/                           # File cache (generati automaticamente)
+├── input_video/                      # Video di input
+├── outputVideo/                      # Video elaborati
+├── slides/                           # Presentazione
+└── stubs/                            # File cache (generati automaticamente)
 ```
 
 ## 🤖 Modelli
@@ -474,42 +476,44 @@ python main.py \
 
 ```
 basketballTrackerCV/
-├── main.py                          # Main entry point
-├── requirements.txt                 # Python dependencies
-├── README.md                        # This file
+├── main.py                           # Main entry point
+├── requirements.txt                  # Python dependencies
+├── README.md                         # This file
 │
-├── detectors/                       # Detection modules
-│   ├── keypoint_detector.py        # Court keypoint detection
-│   ├── player_ball_detector.py     # Player and ball detection
-│   └── player_tracker.py           # Tracking and interpolation
+├── detectors/                        # Detection modules
+│   ├── keypoint_detector.py          # Court keypoint detection
+│   ├── player_ball_detector.py       # Player and ball detection
+│   └── player_tracker.py             # Tracking and interpolation
 │
-├── homography/                      # Perspective transformation
-│   └── homography.py               # Homography calculation
+├── homography/                       # Perspective transformation
+│   └── homography.py                 # Homography calculation
 │
-├── tactical_view_converter/        # Tactical view
-│   └── tactical_view_converter.py  # Coordinate conversion to tactical view
+├── tactical_view_converter/          # Tactical view
+│   └── tactical_view_converter.py    # Coordinate conversion to tactical view
 │
-├── drawers/                         # Rendering and visualization
-│   ├── drawWindow.py               # Output window management
-│   └── drawPoint.py                # Graphic elements rendering
+├── drawers/                          # Rendering and visualization
+│   ├── drawWindow.py                 # Output window management
+│   └── drawPoint.py                  # Graphic elements rendering
 │
-├── utils/                           # Various utilities
-│   ├── video_utils.py              # Video read/write
-│   ├── detectedObject.py           # Detected object classes
-│   ├── bbox_utils.py               # Bounding box utilities
-│   ├── stubs_utils.py              # Cache management
-│   └── overlay.py                  # Graphic overlays
+├── utils/                            # Various utilities
+│   ├── video_utils.py                # Video read/write
+│   ├── detectedObject.py             # Detected object classes
+│   ├── bbox_utils.py                 # Bounding box utilities
+│   ├── stubs_utils.py                # Cache management
+│   └── overlay.py                    # Graphic overlays
 │
-├── models/                          # ML models (not included in repo)
-│   ├── BEST2.pt                    # Keypoint model
-│   └── PlayerDet.pt                # Player/ball model
+├── models/                           # ML models (not included in repo)
+│   ├── BEST2.pt                      # Keypoint model
+│   └── PlayerDet.pt                  # Player/ball model
 │
-├── images/                          # Resource images
-│   └── basketball_court.png        # Tactical court image
+├── images/                           # Resource images
+│   ├── forREADME/                    # Images for README
+│   └── basketball_court.png          # Tactical court image
 │
-├── input_video/                     # Input videos
-├── outputVideo/                     # Processed videos
-└── stubs/                           # Cache files (auto-generated)
+├── input_video/                      # Input videos
+├── outputVideo/                      # Processed videos
+├── slides/                           # Presentation
+└── stubs/                            # Cache files (auto-generated)
 ```
 
 ## 🤖 Models
