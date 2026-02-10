@@ -243,7 +243,9 @@ Il sistema genera:
 il processo di validazione è stato implementato in maniera try and error testando su diverse combinazioni di video, cercando di rifinire il risultato finale.
 
 #### Algoritmo finale di validazione:
-![Algoritmo di validazione keypoint](images/forREADME/algo2.png){height=100px;width=100px}
+
+<img src="images/forREADME/algo2.png" alt="drawing" width="200"/>
+
 
 ### Riferimenti teorici all'omografia
 
@@ -552,7 +554,7 @@ The system generates:
 The validation process has been implemented in a try and error way, testing on different combinations of videos, trying to refine the final result.
 
 #### Pseudo-code for final validation:
-![Keypoint validation algorithm](images/forREADME/algo.png)
+<img src="images/forREADME/algo2_en.png" alt="drawing" width="200"/>
 
 ### Riferimenti teorici all'omografia
 
