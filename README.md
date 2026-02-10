@@ -192,7 +192,7 @@ Il progetto utilizza due modelli di deep learning:
   ![Basketball Court Keypoints](images/forREADME/court_stylized.png)
 
   #### Metriche del Modello per il rilevamento del campo durante l'addestramento:
-  ![Keypoint Model Metrics](images/forREADME/metrics:mAP50-95(B).png)
+  ![Keypoint Model Metrics](images/forREADME/metricsmAP50-95(B).png)
 
   
 ### 2. Modello Giocatori e Pallone
