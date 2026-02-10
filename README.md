@@ -244,7 +244,7 @@ il processo di validazione è stato implementato in maniera try and error testan
 
 #### Algoritmo finale di validazione:
 
-<img src="images/forREADME/algo2.png" alt="drawing" width="200"/>
+<img src="images/forREADME/algo222.png" alt="drawing" width="200"/>
 
 ## Omografia
 
@@ -555,7 +555,7 @@ The system generates:
 The validation process has been implemented in a try and error way, testing on different combinations of videos, trying to refine the final result.
 
 #### Pseudo-code for final validation:
-<img src="images/forREADME/algo2_en.png" alt="drawing" width="200"/>
+<img src="images/forREADME/algo2_en22.png" alt="drawing" width="200"/>
 
 ## Homography 
 
