@@ -239,6 +239,36 @@ Il sistema genera:
 7. **Trasformazione**: Conversione a coordinate vista tattica
 8. **Rendering**: Generazione video finale con annotazioni
 
+## Tracciamento dei giocatori
+Il tracciamento dei giocatori è gestito da ByteTrack, che assegna ID univoci a ciascun giocatore rilevato e mantiene il tracciamento anche in caso di occlusioni temporanee.
+
+```python
+self.TRACKER = sv.ByteTrack(
+    track_activation_threshold=0.35,
+    lost_track_buffer=60,
+    minimum_matching_threshold=0.95,
+    frame_rate=30
+)
+```
+
+## Interpolazione
+ 
+### Palla
+Le posizioni della palla possono essere assenti in alcuni frame (detection mancante).
+Per ottenere una traiettoria continua, convertiamo i bounding box in una tabella (x1,y1,x2,y2) e applichiamo:
+  -	interpolazione lineare sui frame mancanti
+  -	backfill (bfill) per riempire eventuali buchi all’inizio della sequenza
+
+### Giocatori
+Per ridurre lo sfarfallio (box che “saltano” o spariscono per pochi frame), interpoliamo le coordinate separatamente per ogni track_id:
+  1.	raccogliamo tutte le detection (frame, track_id, bbox, class_id)
+  2.	per ogni track_id creiamo un range completo di frame tra prima e ultima apparizione
+  3.	reindicizziamo inserendo i frame mancanti (NaN)
+  4.	interpoliamo linearmente x1,y1,x2,y2 sui buchi
+  5.	class_id viene propagato con forward fill / backfill
+  6.	ricostruiamo list[list[Player]] per frame
+
+
 ## Validazione dei Keypoint Rilevati
 il processo di validazione è stato implementato in maniera try and error testando su diverse combinazioni di video, cercando di rifinire il risultato finale.
 
@@ -557,6 +587,35 @@ The system generates:
 6. **Validation**: Check consistency of detected keypoints
 7. **Transformation**: Convert to tactical view coordinates
 8. **Rendering**: Generate final video with annotations
+
+## Players Tracking
+The players are tracked using ByteTrack, which assigns unique IDs to each detected player and maintains tracking even in case of temporary occlusions.
+
+```python
+self.TRACKER = sv.ByteTrack(
+    track_activation_threshold=0.35,
+    lost_track_buffer=60,
+    minimum_matching_threshold=0.95,
+    frame_rate=30
+)
+```
+
+## Interpolation
+ 
+### Ball
+Ball positions may be missing in some frames (detection missing).
+To obtain a continuous trajectory, we convert the bounding boxes into a table (x1,y1,x2,y2) and apply:
+  -	linear interpolation on missing frames
+  -	backfill (bfill) to fill any gaps at the beginning of the sequence
+
+### Players
+To reduce flickering (boxes that "jump" or disappear for a few frames), we interpolate the coordinates separately for each track_id:
+  1.	collect all detections (frame, track_id, bbox, class_id)
+  2.	for each track_id, create a complete range of frames between the first and last appearance
+  3.	reindex by inserting missing frames (NaN)
+  4.	interpolate x1,y1,x2,y2 linearly over the gaps
+  5.	class_id is propagated with forward fill / backfill
+  6.	reconstruct list[list[Player]] per frame
 
 ## Validation of Detected Keypoints
 The validation process has been implemented in a try and error way, testing on different combinations of videos, trying to refine the final result.
