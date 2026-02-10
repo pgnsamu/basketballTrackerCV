@@ -2,6 +2,9 @@
 
 Un sistema per il tracciamento e l'analisi di partite di basket in tempo reale, con visualizzazione tattica, basato su machine learning e computer vision.
 
+![Basketball Tracker Demo](images/forREADME/demo.gif)
+
+
 [English version below](#english-version)
 
 ## 📋 Indice
