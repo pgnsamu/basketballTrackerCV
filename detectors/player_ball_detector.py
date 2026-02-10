@@ -43,10 +43,13 @@ class PlayerBallDetector:
 
         # 4. TRACKER
         # ByteTrack è ottimo per gestire le occlusioni dei giocatori
-        try:
-            self.TRACKER = sv.ByteTrack()
-        except Exception:
-            self.TRACKER = sv.Sort()
+        self.TRACKER = sv.ByteTrack(
+            track_activation_threshold=0.35,
+            lost_track_buffer=60,
+            minimum_matching_threshold=0.95,
+            frame_rate=30
+        )
+        
             
             
         # 5. PARAMETRI INFERENZA
