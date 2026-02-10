@@ -512,7 +512,7 @@ The project uses two deep learning models:
   ![Basketball Court Keypoints](images/forREADME/court_stylized.png)
 
   #### Court Keypoint Model metrics during training:
-  ![Keypoint Model Metrics](images/forREADME/metrics:mAP50-95(B).png)
+  ![Keypoint Model Metrics](images/forREADME/metricsmAP50-95(B).png)
 
 ### 2. Player and Ball Model
 - **Type**: YOLO11 or RF-DETR
