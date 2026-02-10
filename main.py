@@ -16,7 +16,7 @@ import argparse
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Basketball Tracker CV - Video Analysis')
     
-    parser.add_argument('--video', type=str, default='input_video/video_1.mp4',
+    parser.add_argument('--video', type=str, default='input_video/video_4.mp4',
                         help='Path del video da processare (default: input_video/video_1.mp4)')
     parser.add_argument('--output-path', type=str, default='outputVideo/output_video.mp4',
                         help='Path del video di output (default: outputVideo/output_video.mp4)')
