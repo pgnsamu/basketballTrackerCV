@@ -56,7 +56,7 @@ def main():
         print("Error: Could not read video file.")
         return
 
-    ## Initialize Keypoint Detector
+    ## Initialize sadasddadasKeypoint Detector
     court_keypoint_detector = CourtKeypointDetector(args.keypoint_model)
     
     ## Run KeyPoint Extractor
