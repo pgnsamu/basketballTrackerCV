@@ -220,7 +220,7 @@ Il sistema genera:
    - Vista tattica sovrapposta
    - Indicatore possesso palla
 
-2. **File Stub**: Cache dei risultati per elaborazioni successive più veloci
+2. **File Stub**: Tutti i risultati rilevati vengono salvati nei file di stub per consentire test più rapidi dello stesso video di input
    - `court_key_points_stub.pkl`: Keypoint del campo per frame
    - `players_positions_stub.pkl`: Posizioni giocatori per frame
    - `balls_positions_stub.pkl`: Posizioni pallone per frame
@@ -569,7 +569,7 @@ The system generates:
    - Overlaid tactical view
    - Ball possession indicator
 
-2. **Stub Files**: Cached results for faster subsequent processing
+2. **Stub Files**: All of the detected results are saved in stubs file to allow faster testing of the same input video
    - `court_key_points_stub.pkl`: Court keypoints per frame
    - `players_positions_stub.pkl`: Player positions per frame
    - `balls_positions_stub.pkl`: Ball positions per frame
