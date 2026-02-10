@@ -300,6 +300,7 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - In caso di assenza di rilevamenti dei keypoint per un frame, la trasposizione dei giocatori non verrà eseguita.
 - L'implementazione attuale non supporta ancora l'elaborazione in tempo reale a 30 fps e risoluzione 1920x1080 a causa di vincoli computazionali. Le ottimizzazioni future mireranno a migliorare le prestazioni.
 - Il sistema può avere difficoltà a determinare con precisione il possesso della palla in scene affollate o quando la palla è occlusa.
+- Se le canotte dei giocatori sono di colore simile a quello del campo, il modello potrebbe creare falsi positivi.
 
 ## Miglioramenti futuri
 - Aggiungere il riconoscimento dei numeri di maglia basato su OCR per l'identificazione e il tracciamento dei giocatori
@@ -612,6 +613,7 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - In case of no detections of keypoints for a frame the transposition of the players won't be performed
 - The current implementation does not yet support real-time processing at 30 fps and 1920x1080 resolution due to computational constraints. Future optimizations will aim to improve performance.
 - The system may have difficulty accurately determining ball possession in crowded scenes or when the ball is occluded.
+- if the players' jerseys are of a color similar to that of the court, the model may create false positives.
 
 ## Future Improvements
 - Add OCR-based jersey number recognition for player identification and tracking
