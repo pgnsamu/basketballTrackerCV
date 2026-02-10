@@ -246,6 +246,7 @@ il processo di validazione è stato implementato in maniera try and error testan
 
 <img src="images/forREADME/algo2.png" alt="drawing" width="200"/>
 
+## Omografia
 
 ### Riferimenti teorici all'omografia
 
@@ -556,7 +557,9 @@ The validation process has been implemented in a try and error way, testing on d
 #### Pseudo-code for final validation:
 <img src="images/forREADME/algo2_en.png" alt="drawing" width="200"/>
 
-### Riferimenti teorici all'omografia
+## Homography 
+
+### Theoretical references to homography
 
 The homography is a 3×3 perspective transformation that maps points from one plane to another:
 
