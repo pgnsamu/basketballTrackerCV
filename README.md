@@ -294,12 +294,18 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - Verifica che il modello sia compatibile con la risoluzione del video
 
 
-##  Known issues
-- The system may struggle with heavy occlusions or very fast movements, leading to temporary loss of tracking. Future improvements will focus on enhancing robustness in these scenarios.
-- In case the court keypoints are on the same horizontal/vertical line, the homography calculation may become unstable.
-- In case of no detections of keypoints for a frame the transposition of the players won't be performed
-- The current implementation does not yet support real-time processing at 30 fps and 1920x1080 resolution due to computational constraints. Future optimizations will aim to improve performance.
-- The system may have difficulty accurately determining ball possession in crowded scenes or when the ball is occluded.
+## Problemi noti
+- Il sistema può avere difficoltà con occlusioni pesanti o movimenti molto rapidi, portando a una temporanea perdita di tracciamento. I miglioramenti futuri si concentreranno sull'aumentare la robustezza in questi scenari.
+- Se i keypoint del campo sono sulla stessa linea orizzontale/verticale, il calcolo dell'omografia può diventare instabile.
+- In caso di assenza di rilevamenti dei keypoint per un frame, la trasposizione dei giocatori non verrà eseguita.
+- L'implementazione attuale non supporta ancora l'elaborazione in tempo reale a 30 fps e risoluzione 1920x1080 a causa di vincoli computazionali. Le ottimizzazioni future mireranno a migliorare le prestazioni.
+- Il sistema può avere difficoltà a determinare con precisione il possesso della palla in scene affollate o quando la palla è occlusa.
+
+## Miglioramenti futuri
+- Aggiungere il riconoscimento dei numeri di maglia basato su OCR per l'identificazione e il tracciamento dei giocatori
+- Implementare un modello di segmentazione per migliorare la classificazione delle squadre dei giocatori (casa vs trasferta)
+- Ottimizzare la velocità di inferenza per raggiungere l'elaborazione in tempo reale a 30 fps e risoluzione 1920x1080
+
 
 ## 📄 Licenza
 
@@ -606,6 +612,12 @@ set KMP_DUPLICATE_LIB_OK=TRUE     # Windows
 - In case of no detections of keypoints for a frame the transposition of the players won't be performed
 - The current implementation does not yet support real-time processing at 30 fps and 1920x1080 resolution due to computational constraints. Future optimizations will aim to improve performance.
 - The system may have difficulty accurately determining ball possession in crowded scenes or when the ball is occluded.
+
+## Future Improvements
+- Add OCR-based jersey number recognition for player identification and tracking
+- Implement a segmentation model to improve the team classification of players (home vs away)
+- Optimize inference speed to achieve real-time processing at 30 fps and 1920x1080 resolution
+
 
 ## 📄 License
 
